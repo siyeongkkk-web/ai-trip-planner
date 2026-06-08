@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buildAdjustPrompt, SYSTEM_PROMPT } from "@/lib/prompts";
-import { AdjustRequest, Block } from "@/lib/types";
+import { buildHotelSelectPrompt, SYSTEM_PROMPT } from "@/lib/prompts";
+import { TripPlan, DayPlan, HotelRecommendation } from "@/lib/types";
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey || apiKey === "your-api-key-here") {
     return NextResponse.json(
-      { error: "未配置 API Key。请在 .env.local 文件中将 DEEPSEEK_API_KEY 设置为你的真实 API Key。" },
+      { error: "未配置 API Key。" },
       { status: 500 }
     );
   }
 
   try {
-    const adjustReq: AdjustRequest = await req.json();
-    const userPrompt = buildAdjustPrompt(adjustReq);
+    const { plan, hotelName }: { plan: TripPlan; hotelName: string } = await req.json();
+    const userPrompt = buildHotelSelectPrompt(plan, hotelName);
 
     const response = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: "deepseek-chat",
-        max_tokens: 4096,
+        max_tokens: 8192,
         temperature: 0.7,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       const errorBody = await response.text();
       console.error("DeepSeek API error:", response.status, errorBody);
       return NextResponse.json(
-        { error: `AI 服务调用失败 (${response.status})，请稍后重试。` },
+        { error: `AI 服务调用失败 (${response.status})` },
         { status: 502 }
       );
     }
@@ -44,35 +44,28 @@ export async function POST(req: NextRequest) {
     const data = await response.json();
     const text = data.choices?.[0]?.message?.content || "";
 
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("Failed to parse AI adjust response:", text);
       return NextResponse.json(
         { error: "AI 返回格式异常，请重试。" },
         { status: 500 }
       );
     }
 
-    const newBlocks: Block[] = JSON.parse(jsonMatch[0]);
+    const parsed: { dailyPlans: DayPlan[]; hotel?: HotelRecommendation } =
+      JSON.parse(jsonMatch[0]);
 
-    const { plan, dayIndex, blockId } = adjustReq;
-    const day = plan.dailyPlans[dayIndex];
-    const blockIdx = day.blocks.findIndex((b) => b.id === blockId);
-
-    const updatedBlocks = [...day.blocks.slice(0, blockIdx), ...newBlocks];
-
-    const updatedPlan = { ...plan };
-    updatedPlan.dailyPlans = [...plan.dailyPlans];
-    updatedPlan.dailyPlans[dayIndex] = {
-      ...day,
-      blocks: updatedBlocks,
+    const updatedPlan: TripPlan = {
+      ...plan,
+      dailyPlans: parsed.dailyPlans,
+      hotel: parsed.hotel || plan.hotel,
     };
 
     return NextResponse.json(updatedPlan);
   } catch (err) {
-    console.error("Adjust plan error:", err);
+    console.error("Select hotel error:", err);
     return NextResponse.json(
-      { error: "调整行程时出错，请重试。" },
+      { error: "更新行程时出错，请重试。" },
       { status: 500 }
     );
   }

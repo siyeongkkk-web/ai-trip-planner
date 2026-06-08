@@ -8,6 +8,7 @@ export interface ActivityBlock {
   cost: string;
   duration: string;
   tip: string;
+  highlights?: string[];
 }
 
 export interface TransportBlock {
@@ -24,21 +25,36 @@ export type Block = ActivityBlock | TransportBlock;
 export interface DayPlan {
   dayLabel: string;
   blocks: Block[];
+  dailyBudget?: string;
 }
 
 export interface TripPlan {
   id: string;
   destination: string;
+  departureCity: string;
   days: number;
   preferences: string[];
   createdAt: string;
   dailyPlans: DayPlan[];
+  hotel?: HotelRecommendation;
+  totalBudget?: string;
+  transportAdvice?: string;
+}
+
+export interface HotelRecommendation {
+  area: string;
+  reason: string;
+  budgetRange: string;
+  examples: string[];
 }
 
 export interface TripInput {
   destination: string;
+  departureCity: string;
   days: number;
   preferences: string[];
+  arrivalTime?: string;
+  departureTime?: string;
 }
 
 export type AdjustAction = "remove" | "extend" | "replace";

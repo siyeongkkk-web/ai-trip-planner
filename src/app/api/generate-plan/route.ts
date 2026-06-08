@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildGeneratePrompt, SYSTEM_PROMPT } from "@/lib/prompts";
-import { TripInput, TripPlan, DayPlan } from "@/lib/types";
+import { TripInput, TripPlan, DayPlan, HotelRecommendation } from "@/lib/types";
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+  if (!apiKey || apiKey === "your-api-key-here") {
     return NextResponse.json(
-      { error: "未配置 API Key。请在 .env.local 中设置 ANTHROPIC_API_KEY。" },
+      { error: "未配置 API Key。请在 .env.local 文件中将 DEEPSEEK_API_KEY 设置为你的真实 API Key。" },
       { status: 500 }
     );
   }
@@ -23,24 +23,26 @@ export async function POST(req: NextRequest) {
 
     const userPrompt = buildGeneratePrompt(input);
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "deepseek-chat",
         max_tokens: 8192,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userPrompt }],
+        temperature: 0.7,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userPrompt },
+        ],
       }),
     });
 
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error("Anthropic API error:", response.status, errorBody);
+      console.error("DeepSeek API error:", response.status, errorBody);
       return NextResponse.json(
         { error: `AI 服务调用失败 (${response.status})，请稍后重试。` },
         { status: 502 }
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
-    const text = data.content?.[0]?.text || "";
+    const text = data.choices?.[0]?.message?.content || "";
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
@@ -59,15 +61,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const parsed: { dailyPlans: DayPlan[] } = JSON.parse(jsonMatch[0]);
+    const parsed: {
+      dailyPlans: DayPlan[];
+      hotel?: HotelRecommendation;
+      totalBudget?: string;
+      transportAdvice?: string;
+    } = JSON.parse(jsonMatch[0]);
 
     const plan: TripPlan = {
       id: crypto.randomUUID(),
       destination: input.destination,
+      departureCity: input.departureCity,
       days: input.days,
       preferences: input.preferences,
       createdAt: new Date().toISOString(),
       dailyPlans: parsed.dailyPlans,
+      hotel: parsed.hotel,
+      totalBudget: parsed.totalBudget,
+      transportAdvice: parsed.transportAdvice,
     };
 
     return NextResponse.json(plan);

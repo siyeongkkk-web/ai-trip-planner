@@ -72,11 +72,10 @@ export default function HistoryPage() {
                 <span className="text-sm text-gray-400 ml-3">
                   {new Date(plan.createdAt).toLocaleDateString("zh-CN")}
                 </span>
-                {plan.preferences.length > 0 && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    {plan.preferences.join(" · ")}
-                  </p>
-                )}
+                <p className="text-xs text-gray-400 mt-1">
+                  {plan.departureCity && `${plan.departureCity}出发`}
+                  {plan.preferences.length > 0 && ` · ${plan.preferences.join(" · ")}`}
+                </p>
               </button>
               <button
                 onClick={(e) => {

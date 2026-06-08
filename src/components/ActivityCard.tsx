@@ -17,14 +17,22 @@ const DEFAULT_STYLE = { bg: "bg-gray-50", border: "border-gray-200", icon: "📍
 
 interface Props {
   block: ActivityBlock;
+  city: string;
   onAdjust?: (action: AdjustAction) => void;
   adjusting?: boolean;
 }
 
-export default function ActivityCard({ block, onAdjust, adjusting }: Props) {
+export default function ActivityCard({ block, city, onAdjust, adjusting }: Props) {
   const style = CATEGORY_STYLES[block.category] || DEFAULT_STYLE;
-  const mapQuery = encodeURIComponent(block.title);
-  const mapUrl = `https://uri.amap.com/search?keyword=${mapQuery}`;
+
+  const mapQuery = encodeURIComponent(`${city} ${block.title}`);
+  const amapUrl = `https://www.amap.com/search?query=${mapQuery}`;
+  const isFood = block.category.includes("美食");
+  const xhsKeyword = isFood
+    ? `${city} ${block.title} 必吃 推荐`
+    : `${city} ${block.title} 游玩攻略 路线`;
+  const xhsQuery = encodeURIComponent(xhsKeyword);
+  const xhsUrl = `https://www.xiaohongshu.com/search_result?keyword=${xhsQuery}&type=51`;
 
   return (
     <div className={`relative rounded-xl border ${style.border} ${style.bg} p-4 shadow-sm transition-all hover:shadow-md`}>
@@ -37,16 +45,40 @@ export default function ActivityCard({ block, onAdjust, adjusting }: Props) {
             </span>
           </div>
           <h3 className="text-base font-semibold text-gray-900 mb-2">{block.title}</h3>
+
+          {block.highlights && block.highlights.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {block.highlights.map((h, i) => (
+                <span
+                  key={i}
+                  className="text-xs px-2 py-0.5 rounded-full bg-white/80 text-gray-700 border border-gray-200/60"
+                >
+                  {h}
+                </span>
+              ))}
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
             <span>⏱ {block.duration}</span>
             <span>💰 {block.cost}</span>
+          </div>
+          <div className="flex flex-wrap gap-x-3 mt-1.5 text-xs">
             <a
-              href={mapUrl}
+              href={amapUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:text-blue-800 hover:underline"
             >
-              📍 在地图中查看
+              📍 高德地图
+            </a>
+            <a
+              href={xhsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-red-500 hover:text-red-700 hover:underline"
+            >
+              📕 小红书攻略
             </a>
           </div>
           {block.tip && (

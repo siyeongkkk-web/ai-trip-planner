@@ -1,19 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { PREFERENCE_OPTIONS, DAY_OPTIONS } from "@/lib/types";
+import { TripInput, PREFERENCE_OPTIONS, DAY_OPTIONS } from "@/lib/types";
 
 interface Props {
-  onSubmit: (destination: string, days: number, preferences: string[]) => void;
+  onSubmit: (input: TripInput) => void;
   loading: boolean;
 }
 
 export default function TripForm({ onSubmit, loading }: Props) {
+  const [departureCity, setDepartureCity] = useState("");
   const [destination, setDestination] = useState("");
   const [days, setDays] = useState<number>(3);
   const [customDays, setCustomDays] = useState("");
   const [isCustom, setIsCustom] = useState(false);
   const [selectedPrefs, setSelectedPrefs] = useState<string[]>([]);
+  const [arrivalTime, setArrivalTime] = useState("");
+  const [departureTime, setDepartureTime] = useState("");
+  const [showMore, setShowMore] = useState(false);
 
   const togglePref = (label: string) => {
     setSelectedPrefs((prev) =>
@@ -23,34 +27,56 @@ export default function TripForm({ onSubmit, loading }: Props) {
 
   const handleSubmit = () => {
     const finalDays = isCustom ? parseInt(customDays, 10) : days;
-    if (!destination.trim()) return;
+    if (!destination.trim() || !departureCity.trim()) return;
     if (!finalDays || finalDays < 1 || finalDays > 14) return;
-    onSubmit(destination.trim(), finalDays, selectedPrefs);
+    onSubmit({
+      destination: destination.trim(),
+      departureCity: departureCity.trim(),
+      days: finalDays,
+      preferences: selectedPrefs,
+      arrivalTime: arrivalTime || undefined,
+      departureTime: departureTime || undefined,
+    });
   };
 
   const finalDays = isCustom ? parseInt(customDays, 10) : days;
-  const isValid = destination.trim() && finalDays >= 1 && finalDays <= 14;
+  const isValid =
+    destination.trim() && departureCity.trim() && finalDays >= 1 && finalDays <= 14;
 
   return (
-    <div className="w-full max-w-lg mx-auto space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          去哪里？
-        </label>
-        <input
-          type="text"
-          value={destination}
-          onChange={(e) => setDestination(e.target.value)}
-          placeholder="输入目的地，如：成都、北京、大理..."
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow text-base"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && isValid && !loading) handleSubmit();
-          }}
-        />
+    <div className="w-full max-w-lg mx-auto space-y-5">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            从哪出发？
+          </label>
+          <input
+            type="text"
+            value={departureCity}
+            onChange={(e) => setDepartureCity(e.target.value)}
+            placeholder="如：北京、上海..."
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow text-base"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            去哪玩？
+          </label>
+          <input
+            type="text"
+            value={destination}
+            onChange={(e) => setDestination(e.target.value)}
+            placeholder="如：成都、大理..."
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow text-base"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && isValid && !loading) handleSubmit();
+            }}
+          />
+        </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
           玩几天？
         </label>
         <div className="flex flex-wrap gap-2">
@@ -80,23 +106,23 @@ export default function TripForm({ onSubmit, loading }: Props) {
           >
             自定义
           </button>
+          {isCustom && (
+            <input
+              type="number"
+              min={1}
+              max={14}
+              value={customDays}
+              onChange={(e) => setCustomDays(e.target.value)}
+              placeholder="天数"
+              className="w-20 px-3 py-2 rounded-full border border-gray-200 text-sm text-gray-900 text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          )}
         </div>
-        {isCustom && (
-          <input
-            type="number"
-            min={1}
-            max={14}
-            value={customDays}
-            onChange={(e) => setCustomDays(e.target.value)}
-            placeholder="输入天数 (1-14)"
-            className="mt-2 w-32 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        )}
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          偏好（可选，选你喜欢的）
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          偏好（可选）
         </label>
         <div className="flex flex-wrap gap-2">
           {PREFERENCE_OPTIONS.map((pref) => (
@@ -114,6 +140,55 @@ export default function TripForm({ onSubmit, loading }: Props) {
           ))}
         </div>
       </div>
+
+      {!showMore ? (
+        <button
+          onClick={() => setShowMore(true)}
+          className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          + 设置到达/离开时间（可选）
+        </button>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">
+              第一天几点到？
+            </label>
+            <select
+              value={arrivalTime}
+              onChange={(e) => setArrivalTime(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">默认早上出发</option>
+              <option value="08:00">上午 08:00</option>
+              <option value="10:00">上午 10:00</option>
+              <option value="12:00">中午 12:00</option>
+              <option value="14:00">下午 14:00</option>
+              <option value="16:00">下午 16:00</option>
+              <option value="18:00">傍晚 18:00</option>
+              <option value="20:00">晚上 20:00</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">
+              最后一天几点走？
+            </label>
+            <select
+              value={departureTime}
+              onChange={(e) => setDepartureTime(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">默认玩到晚上</option>
+              <option value="10:00">上午 10:00</option>
+              <option value="12:00">中午 12:00</option>
+              <option value="14:00">下午 14:00</option>
+              <option value="16:00">下午 16:00</option>
+              <option value="18:00">傍晚 18:00</option>
+              <option value="20:00">晚上 20:00</option>
+            </select>
+          </div>
+        </div>
+      )}
 
       <button
         onClick={handleSubmit}

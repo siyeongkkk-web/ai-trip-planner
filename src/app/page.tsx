@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import TripForm from "@/components/TripForm";
 import LoadingOverlay from "@/components/LoadingOverlay";
-import { TripPlan } from "@/lib/types";
+import { TripPlan, TripInput } from "@/lib/types";
 import { savePlan, getHistory } from "@/lib/storage";
 
 export default function Home() {
@@ -17,7 +17,7 @@ export default function Home() {
     setHistory(getHistory());
   }, []);
 
-  const handleSubmit = async (destination: string, days: number, preferences: string[]) => {
+  const handleSubmit = async (input: TripInput) => {
     setLoading(true);
     setError(null);
 
@@ -25,7 +25,7 @@ export default function Home() {
       const res = await fetch("/api/generate-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ destination, days, preferences }),
+        body: JSON.stringify(input),
       });
 
       const data = await res.json();
