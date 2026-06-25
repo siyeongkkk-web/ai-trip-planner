@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI Trip Planner（智能行程规划）
 
-## Getting Started
+把小红书攻略里零散的打卡点，连成一份可执行的多日行程。
 
-First, run the development server:
+**核心思路**：AI 只做"软活"（从帖子里抽景点名、估游玩时长、听懂自然语言调整），算法和地图 API 做"硬活"（坐标、距离、真实交通、路线优化）——避免 LLM 编造假车次/假时间。
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 功能
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **输入层**：粘贴小红书正文 / 上传截图（本地 OCR）→ AI 识别景点 → 按类别勾选 + 手动新增
+- **规划层**：高德地理编码 → 按地理位置 + 时间容量分天 → 路线排序 → 真实交通方式与耗时
+- **增值层**：每个景点合理游玩时长、按饭点配真实餐厅、超量自动删除并可置换、按位置偏好推荐酒店、预算估算
+- **对话调整**：用大白话提建议，自动重新规划
+- **可调**：游玩节奏（赶/适中/悠闲）、自定义用餐时间
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 技术栈
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Next.js 16 + React 19 + Tailwind v4
+- DeepSeek（`deepseek-chat`）：NER / 时长估计 / 自然语言解析
+- 高德地图 Web 服务 API：地理编码 / 路线 / 周边搜索
+- macOS Vision 框架（`scripts/ocr-image.swift`）：本地中文 OCR（免费、离线）
 
-## Learn More
+## 本地运行
 
-To learn more about Next.js, take a look at the following resources:
+> ⚠️ 截图 OCR 依赖本机 **macOS + swift（Vision 框架）**，仅在 Mac 上可用。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. 安装依赖：
+   ```bash
+   npm install
+   ```
+2. 配置环境变量：复制 `.env.example` 为 `.env.local`，填入你的 `DEEPSEEK_API_KEY` 和 `AMAP_KEY`（高德选「Web服务」类型 key）。
+3. 启动：
+   ```bash
+   npm run dev
+   ```
+   打开 http://localhost:3000 。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 注意
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- 坐标 / 距离 / 交通耗时 / 餐厅 / 酒店均来自高德（真实数据）；游玩时长、门票与预算为粗略估算，出行前请再核对。
+- 小红书链接服务端无法抓取正文（反爬），所以采用"粘贴正文 / 上传截图"。
