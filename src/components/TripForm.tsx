@@ -55,7 +55,7 @@ export default function TripForm({ onSubmit, loading }: Props) {
             value={departureCity}
             onChange={(e) => setDepartureCity(e.target.value)}
             placeholder="如：北京、上海..."
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow text-base"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent transition-shadow text-base"
           />
         </div>
         <div>
@@ -67,7 +67,7 @@ export default function TripForm({ onSubmit, loading }: Props) {
             value={destination}
             onChange={(e) => setDestination(e.target.value)}
             placeholder="如：成都、大理..."
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow text-base"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent transition-shadow text-base"
             onKeyDown={(e) => {
               if (e.key === "Enter" && isValid && !loading) handleSubmit();
             }}
@@ -89,7 +89,7 @@ export default function TripForm({ onSubmit, loading }: Props) {
               }}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 !isCustom && days === d
-                  ? "bg-blue-600 text-white shadow-md"
+                  ? "bg-teal-700 text-white shadow-md"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -100,7 +100,7 @@ export default function TripForm({ onSubmit, loading }: Props) {
             onClick={() => setIsCustom(true)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
               isCustom
-                ? "bg-blue-600 text-white shadow-md"
+                ? "bg-teal-700 text-white shadow-md"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
@@ -114,7 +114,7 @@ export default function TripForm({ onSubmit, loading }: Props) {
               value={customDays}
               onChange={(e) => setCustomDays(e.target.value)}
               placeholder="天数"
-              className="w-20 px-3 py-2 rounded-full border border-gray-200 text-sm text-gray-900 text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-20 px-3 py-2 rounded-full border border-gray-200 text-sm text-gray-900 text-center focus:outline-none focus:ring-2 focus:ring-teal-600"
             />
           )}
         </div>
@@ -157,7 +157,7 @@ export default function TripForm({ onSubmit, loading }: Props) {
             <select
               value={arrivalTime}
               onChange={(e) => setArrivalTime(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-teal-600"
             >
               <option value="">默认早上出发</option>
               <option value="08:00">上午 08:00</option>
@@ -176,7 +176,7 @@ export default function TripForm({ onSubmit, loading }: Props) {
             <select
               value={departureTime}
               onChange={(e) => setDepartureTime(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-teal-600"
             >
               <option value="">默认玩到晚上</option>
               <option value="10:00">上午 10:00</option>
@@ -193,7 +193,7 @@ export default function TripForm({ onSubmit, loading }: Props) {
       <button
         onClick={handleSubmit}
         disabled={!isValid || loading}
-        className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-base shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-lg"
+        className="w-full py-3.5 rounded-xl btn-route font-semibold text-base shadow-lg"
       >
         {loading ? (
           <span className="flex items-center justify-center gap-2">

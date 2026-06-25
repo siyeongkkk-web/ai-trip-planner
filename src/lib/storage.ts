@@ -1,6 +1,7 @@
-import { TripPlan } from "./types";
+import { TripPlan, POICollection } from "./types";
 
 const STORAGE_KEY = "ai-trip-planner-history";
+const POI_KEY = "ai-trip-planner-poi-collections";
 
 export function savePlan(plan: TripPlan): void {
   const history = getHistory();
@@ -31,4 +32,32 @@ export function deletePlan(id: string): void {
 
 export function clearHistory(): void {
   localStorage.removeItem(STORAGE_KEY);
+}
+
+// ===== 新架构：POI 候选集存储 =====
+
+export function savePOICollection(collection: POICollection): void {
+  const all = getPOICollections();
+  const existing = all.findIndex((c) => c.id === collection.id);
+  if (existing >= 0) {
+    all[existing] = collection;
+  } else {
+    all.unshift(collection);
+  }
+  if (all.length > 20) all.pop();
+  localStorage.setItem(POI_KEY, JSON.stringify(all));
+}
+
+export function getPOICollections(): POICollection[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(POI_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function getPOICollection(id: string): POICollection | undefined {
+  return getPOICollections().find((c) => c.id === id);
 }

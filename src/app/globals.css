@@ -5,29 +5,121 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* ===== 设计 token：地铁线路图 × 行程票 ===== */
+:root {
+  --paper: #eaeeec;        /* 冷调地图纸底 */
+  --paper-card: #fbfcfb;   /* 卡片纸面 */
+  --ink: #17242b;          /* 板岩墨字 */
+  --ink-soft: #5d6e74;     /* 次级文字 */
+  --line: #d4dad8;         /* 细分隔线 */
+  --route: #0f6f63;        /* 路线松绿（主色）*/
+  --route-deep: #0a4d45;
+  --amber: #c8860a;        /* 高亮/提醒（被删点）*/
+  --rose: #f2415f;         /* 小红书入口专用 */
+  /* 交通方式 = 地铁线式配色 */
+  --mode-walk: #2f8f5b;
+  --mode-subway: #2e6fd6;
+  --mode-taxi: #5b57c7;
+}
+
 body {
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+/* 等宽数字：时刻/金额像发车牌 */
+.tnum {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
-.animate-spin {
-  animation: spin 1s linear infinite;
+/* 主操作按钮：实色路线松绿，不用渐变 */
+.btn-route {
+  background: var(--route);
+  color: #fff;
+  transition: background 0.15s ease, transform 0.05s ease;
 }
+.btn-route:hover:not(:disabled) { background: var(--route-deep); }
+.btn-route:active:not(:disabled) { transform: translateY(1px); }
+.btn-route:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ===== 签名：交通线时间轴 ===== */
+.tl { position: relative; }
+/* 贯穿的路线主干 */
+.tl::before {
+  content: "";
+  position: absolute;
+  left: 53px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--line);
+}
+.tl-row { position: relative; padding-left: 72px; min-height: 30px; }
+.tl-time {
+  position: absolute;
+  left: 0;
+  top: 14px;
+  width: 44px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+/* 站点圆点，骑在主干上 */
+.tl-dot {
+  position: absolute;
+  left: 46px;
+  top: 15px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--paper-card);
+  border: 3px solid var(--route);
+  z-index: 1;
+}
+.tl-dot--meal { border-color: var(--amber); }
+.tl-dot--hotel { border-color: var(--ink); background: var(--ink); }
+
+/* 站间换乘段：一截彩色短线 + 模式标签 */
+.tl-leg {
+  position: relative;
+  padding-left: 72px;
+  margin: 2px 0;
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tl-leg::before {
+  content: "";
+  position: absolute;
+  left: 49px;
+  top: -2px;
+  bottom: -2px;
+  width: 6px;
+  border-radius: 3px;
+  background: var(--leg-color, var(--line));
+}
+.tl-legtext { font-size: 11px; color: var(--ink-soft); }
+
+/* 行程票：当天头部 / 预算 */
+.ticket {
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.animate-spin { animation: spin 1s linear infinite; }
 
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
+.animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
 
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin, .animate-pulse { animation: none; }
 }

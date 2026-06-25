@@ -1,4 +1,122 @@
-import { TripInput, AdjustRequest, Block, TripPlan } from "./types";
+import {
+  TripInput,
+  AdjustRequest,
+  Block,
+  TripPlan,
+  ExtractInput,
+  AdjustChatInput,
+} from "./types";
+
+// ===== 新架构 · 对话调整：把用户的自然语言反馈翻译成结构化新参数 =====
+export const ADJUST_CHAT_SYSTEM_PROMPT = `你是行程调整助手。用户会用自然语言对当前行程提调整建议，你的任务是把它转换成"结构化的新规划参数"。
+
+重要：你**不负责**排路线、算时间、定交通（那些由地图 API 和算法完成）。你只输出调整后的参数 + 一句友好回应。
+
+可调整的维度：
+- days：旅行天数（用户说"多玩一天/改成5天"时改）
+- hotelTier：住宿档次，只能是 经济 / 舒适 / 豪华
+- hotelPrefs：住宿位置偏好，从 [地铁近, 公交近, 景点近, 闹中取静] 里选（可多选）
+- include：用户明确想去/强调要保留的景点名（从被删名单里捞回来，或强调别删）
+- exclude：用户明确不想去、要删掉的景点名
+
+规则：
+- 没提到的维度，原样保留当前值，不要乱改。
+- include / exclude 里的名字必须来自下面给出的景点列表，用原名。
+- reply 用中文，简短确认你做了什么改动。
+只输出 JSON。`;
+
+export function buildAdjustChatPrompt(input: AdjustChatInput): string {
+  return `当前设置：
+- 城市：${input.city}
+- 天数：${input.days}
+- 住宿档次：${input.hotelTier}
+- 住宿偏好：${input.hotelPrefs.join("、") || "无"}
+- 行程里的景点：${input.inPlan.join("、") || "无"}
+- 被删掉的景点：${input.dropped.join("、") || "无"}
+
+用户的调整建议："${input.message}"
+
+请严格输出此 JSON（未改动的字段沿用当前值）：
+{
+  "days": ${input.days},
+  "hotelTier": "${input.hotelTier}",
+  "hotelPrefs": ${JSON.stringify(input.hotelPrefs)},
+  "include": [],
+  "exclude": [],
+  "reply": "好的，我把…"
+}`;
+}
+
+// ===== 新架构 · 输入层：从小红书帖子识别景点（NER，LLM 只干"抽名字"这件软活）=====
+
+export const EXTRACT_SYSTEM_PROMPT = `你是一个景点/打卡点的命名实体识别（NER）助手。你的唯一任务是：从用户粘贴的小红书旅行帖子正文里，把所有提到的、地图上能找到的真实地点抽取出来。
+
+严格遵守：
+- 只抽帖子里**真实出现**的地点，绝对不要自己补充、推荐、编造帖子没提到的地点。
+- 同一个地点只出现一次，不要重复。
+- 抽取对象包括：景点、公园、寺庙、博物馆、网红打卡墙/街区、餐厅、咖啡馆、小吃店、商场、市集等"能在地图上搜到的点"。
+- 不要抽：抽象的活动（如"逛街""拍照""散步"）、宽泛的区域（如"老城区""市中心"，除非它本身是个具体地名）、交通方式、时间。
+- 帖子常用网红叫法/简称/描述性指代（如"那面出片的红墙""人少的宝藏咖啡店"）。这种情况：name 填你判断的规范名（猜不准就保留原叫法），aliasInPost 填帖子原话。
+- 你只做"抽名字"，不做行程规划、不算路线、不评价。
+
+只输出 JSON，不要输出任何解释文字。`;
+
+// ===== 新架构 · 规划层：让 LLM 估"每个景点合理游玩多久 + 重要度"（软判断）=====
+// LLM 只输出时长和重要度，不碰路线计算。
+
+export const DURATION_SYSTEM_PROMPT = `你是熟悉中国各地景点的旅行规划助手。给你一批景点，你要估计每个景点"一般游客合理的游玩时长（分钟）"和"重要度（1-5）"。
+
+时长要符合现实：
+- 大型主题乐园（如北京环球影城、上海迪士尼）需要一整天，约 480-600 分钟；
+- 大型景区/古镇（如颐和园、故宫）约 180-240 分钟；
+- 一般景点/博物馆约 90-150 分钟；
+- 打卡拍照点、咖啡馆、小景点约 30-60 分钟。
+
+重要度 5 = 必看地标/此行核心，1 = 锦上添花可舍弃。
+
+只输出 JSON，不要任何解释。`;
+
+export function buildDurationPrompt(
+  city: string,
+  pois: { name: string; category?: string }[]
+): string {
+  const list = pois.map((p, i) => `${i + 1}. ${p.name}（${p.category || "景点"}）`).join("\n");
+  return `城市：${city}
+景点列表：
+${list}
+
+请为每个景点估计游玩时长和重要度，严格按此 JSON 输出（name 必须与上面完全一致）：
+{
+  "results": [
+    { "name": "北京环球影城", "minutes": 540, "priority": 5 }
+  ]
+}`;
+}
+
+export function buildExtractPrompt(input: ExtractInput): string {
+  return `下面是一篇小红书旅行帖子的正文，请抽取其中提到的所有真实地点。
+
+帖子正文：
+"""
+${input.text}
+"""
+
+请严格按以下 JSON 格式输出（candidates 按帖子里出现的先后顺序排列）：
+{
+  "city": "你推断的城市名（如成都；推断不出就留空字符串）",
+  "candidates": [
+    {
+      "name": "规范化的、便于地图搜索的景点名",
+      "aliasInPost": "帖子里原本的叫法（若和 name 一样就留空）",
+      "category": "景点 / 美食 / 咖啡 / 拍照点 / 购物 / 其他 中选一个",
+      "note": "用帖子里的原话或大意，写一句话说明这个点有什么亮点或为什么值得去（不超过30字）"
+    }
+  ]
+}
+
+如果帖子里一个真实地点都没有，返回 {"city": "", "candidates": []}。`;
+}
+
 
 export function buildGeneratePrompt(input: TripInput): string {
   const prefText =

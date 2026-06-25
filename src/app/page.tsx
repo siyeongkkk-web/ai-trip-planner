@@ -61,6 +61,29 @@ export default function Home() {
               </p>
             </div>
 
+            <button
+              onClick={() => router.push("/extract")}
+              className="w-full max-w-lg mx-auto mb-6 p-4 rounded-2xl bg-gradient-to-r from-rose-50 to-pink-50 border border-pink-200 text-left hover:shadow-md transition-all group"
+            >
+              <span className="flex items-center justify-between">
+                <span>
+                  <span className="block font-semibold text-pink-700">
+                    📕 从小红书帖子提取景点 <span className="text-xs font-normal align-middle ml-1 px-1.5 py-0.5 rounded bg-pink-100 text-pink-600">新</span>
+                  </span>
+                  <span className="block text-sm text-pink-600/80 mt-0.5">
+                    粘贴帖子正文 → AI 识别地点 → 你勾选想去的
+                  </span>
+                </span>
+                <span className="text-pink-400 group-hover:translate-x-0.5 transition-transform">→</span>
+              </span>
+            </button>
+
+            <div className="w-full max-w-lg mx-auto flex items-center gap-3 mb-6">
+              <div className="flex-1 h-px bg-gray-100" />
+              <span className="text-xs text-gray-400">或直接告诉我目的地</span>
+              <div className="flex-1 h-px bg-gray-100" />
+            </div>
+
             <TripForm onSubmit={handleSubmit} loading={loading} />
 
             {error && (
