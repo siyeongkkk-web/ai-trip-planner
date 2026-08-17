@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildGeneratePrompt, SYSTEM_PROMPT } from "@/lib/prompts";
-import { TripInput, TripPlan, DayPlan, HotelRecommendation } from "@/lib/types";
+import { normalizeDailyPlans, rebuildPlanItinerary } from "@/lib/plan-safety";
+import { fetchWithTimeout } from "@/lib/fetch-timeout";
+import { TripInput, TripPlan } from "@/lib/types";
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.DEEPSEEK_API_KEY;
@@ -14,16 +16,24 @@ export async function POST(req: NextRequest) {
   try {
     const input: TripInput = await req.json();
 
-    if (!input.destination || !input.days) {
+    if (
+      !input.destination ||
+      !input.days ||
+      !input.startDate ||
+      !input.endDate ||
+      !input.outboundTransport ||
+      !input.returnTransport ||
+      !input.selectedHotel
+    ) {
       return NextResponse.json(
-        { error: "请输入目的地和出行天数" },
+        { error: "请先确认日期、往返交通和酒店。" },
         { status: 400 }
       );
     }
 
     const userPrompt = buildGeneratePrompt(input);
 
-    const response = await fetch("https://api.deepseek.com/chat/completions", {
+    const response = await fetchWithTimeout("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -38,7 +48,7 @@ export async function POST(req: NextRequest) {
           { role: "user", content: userPrompt },
         ],
       }),
-    });
+    }, 60_000, "DeepSeek 行程生成");
 
     if (!response.ok) {
       const errorBody = await response.text();
@@ -61,25 +71,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const parsed: {
-      dailyPlans: DayPlan[];
-      hotel?: HotelRecommendation;
-      totalBudget?: string;
-      transportAdvice?: string;
-    } = JSON.parse(jsonMatch[0]);
-
+    const parsed = JSON.parse(jsonMatch[0]) as { dailyPlans?: unknown };
+    const normalized = normalizeDailyPlans(parsed.dailyPlans);
+    if (normalized.length === 0 || normalized.every((day) => day.blocks.length === 0)) {
+      return NextResponse.json(
+        { error: "AI 返回的活动结构不完整，请重试。" },
+        { status: 502 }
+      );
+    }
     const plan: TripPlan = {
       id: crypto.randomUUID(),
       destination: input.destination,
       departureCity: input.departureCity,
       days: input.days,
       preferences: input.preferences,
+      hotelPreferences: input.hotelPreferences,
+      foodPreferences: input.foodPreferences,
+      breakfastHabit: input.breakfastHabit,
+      planningStrategy: input.planningStrategy,
+      sourcePOICollectionId: input.sourcePOICollectionId,
+      sourcePOIs: input.sourcePOIs,
       createdAt: new Date().toISOString(),
-      dailyPlans: parsed.dailyPlans,
-      hotel: parsed.hotel,
-      totalBudget: parsed.totalBudget,
-      transportAdvice: parsed.transportAdvice,
+      startDate: input.startDate,
+      endDate: input.endDate,
+      publicTransportTaxiThreshold: input.publicTransportTaxiThreshold || 60,
+      travelers: input.travelers,
+      outboundTransport: input.outboundTransport,
+      returnTransport: input.returnTransport,
+      selectedHotel: input.selectedHotel,
+      status: "generated",
+      engineVersion: 7,
+      dailyPlans: normalized,
     };
+    if (process.env.AMAP_KEY) {
+      plan.dailyPlans = await rebuildPlanItinerary(plan);
+    }
 
     return NextResponse.json(plan);
   } catch (err) {

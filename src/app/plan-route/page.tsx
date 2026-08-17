@@ -77,6 +77,8 @@ function PlanRouteContent() {
     if (!id) return;
     const c = getPOICollection(id);
     if (c) {
+      // 从 localStorage 恢复由查询参数指定的用户行程集合。
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCollection(c);
       setCity(c.city || "");
     }
@@ -390,7 +392,7 @@ function PlanRouteContent() {
                   {swap.length > 0 && (
                     <>
                       <p className="text-xs text-amber-700 mb-2">
-                        ⏱ 这些景点时间装不下。勾"非去不可"会顶掉次要的点，重新规划：
+                        ⏱ 这些景点时间装不下。勾“非去不可”会顶掉次要的点，重新规划：
                       </p>
                       <div className="flex flex-wrap gap-2 mb-3">
                         {swap.map((p) => (

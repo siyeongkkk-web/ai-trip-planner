@@ -22,6 +22,7 @@ import {
   Pt,
 } from "@/lib/planner";
 import { buildDurationPrompt, DURATION_SYSTEM_PROMPT } from "@/lib/prompts";
+import { fetchWithTimeout } from "@/lib/fetch-timeout";
 import {
   PlanRouteInput,
   GeoPOI,
@@ -49,7 +50,7 @@ async function estimateDurations(
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (apiKey && apiKey !== "your-api-key-here") {
     try {
-      const res = await fetch("https://api.deepseek.com/chat/completions", {
+      const res = await fetchWithTimeout("https://api.deepseek.com/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({
@@ -61,7 +62,7 @@ async function estimateDurations(
             { role: "user", content: buildDurationPrompt(city, pois) },
           ],
         }),
-      });
+      }, 20_000, "DeepSeek 游玩时长估算");
       const data = await res.json();
       const text = data.choices?.[0]?.message?.content || "";
       const m = text.match(/\{[\s\S]*\}/);

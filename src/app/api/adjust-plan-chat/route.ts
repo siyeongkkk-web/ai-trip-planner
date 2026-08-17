@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildAdjustChatPrompt, ADJUST_CHAT_SYSTEM_PROMPT } from "@/lib/prompts";
 import { AdjustChatInput, AdjustChatResult, HotelTier, HotelPref } from "@/lib/types";
+import { fetchWithTimeout } from "@/lib/fetch-timeout";
 
 const TIERS: HotelTier[] = ["经济", "舒适", "豪华"];
 const PREFS: HotelPref[] = ["地铁近", "公交近", "景点近", "闹中取静"];
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "请输入调整建议。" }, { status: 400 });
     }
 
-    const res = await fetch("https://api.deepseek.com/chat/completions", {
+    const res = await fetchWithTimeout("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
           { role: "user", content: buildAdjustChatPrompt(input) },
         ],
       }),
-    });
+    }, 20_000, "DeepSeek 偏好调整");
     if (!res.ok) {
       return NextResponse.json({ error: `AI 调用失败 (${res.status})。` }, { status: 502 });
     }

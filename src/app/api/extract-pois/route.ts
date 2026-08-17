@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildExtractPrompt, EXTRACT_SYSTEM_PROMPT } from "@/lib/prompts";
 import { ExtractInput } from "@/lib/types";
+import { fetchWithTimeout } from "@/lib/fetch-timeout";
 
 interface RawCandidate {
   name?: string;
+  evidence?: string;
   aliasInPost?: string;
   category?: string;
-  note?: string;
+}
+
+const CATEGORIES = new Set(["景点", "美食", "咖啡", "拍照点", "购物", "其他"]);
+
+function normalizeForEvidence(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
 }
 
 export async function POST(req: NextRequest) {
@@ -30,7 +37,7 @@ export async function POST(req: NextRequest) {
 
     const userPrompt = buildExtractPrompt(input);
 
-    const response = await fetch("https://api.deepseek.com/chat/completions", {
+    const response = await fetchWithTimeout("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -46,7 +53,7 @@ export async function POST(req: NextRequest) {
           { role: "user", content: userPrompt },
         ],
       }),
-    });
+    }, 30_000, "DeepSeek 地点提取");
 
     if (!response.ok) {
       const errorBody = await response.text();
@@ -73,15 +80,39 @@ export async function POST(req: NextRequest) {
       jsonMatch[0]
     );
 
+    const source = normalizeForEvidence(input.text);
+    const seen = new Set<string>();
     const candidates = (parsed.candidates || [])
-      .filter((c) => c.name && c.name.trim())
+      .filter((c) => {
+        if (typeof c.name !== "string" || typeof c.evidence !== "string") return false;
+        const name = normalizeForEvidence(c.name);
+        const evidence = normalizeForEvidence(c.evidence);
+        if (
+          !name ||
+          !evidence ||
+          evidence.length > 60 ||
+          !source.includes(name) ||
+          !source.includes(evidence) ||
+          !evidence.includes(name)
+        ) {
+          return false;
+        }
+        const duplicateKey = name.toLocaleLowerCase();
+        if (seen.has(duplicateKey)) return false;
+        seen.add(duplicateKey);
+        return true;
+      })
       .map((c, i) => ({
         id: `p${i + 1}`,
         name: c.name!.trim(),
-        aliasInPost: c.aliasInPost?.trim() || undefined,
-        category: c.category?.trim() || "其他",
-        note: c.note?.trim() || undefined,
-        selected: true, // 默认全选，用户取消不想去的（灭掉 AI 抽错的点）
+        evidence: c.evidence?.trim(),
+        aliasInPost:
+          typeof c.aliasInPost === "string" && source.includes(normalizeForEvidence(c.aliasInPost))
+            ? c.aliasInPost.trim()
+            : undefined,
+        category: CATEGORIES.has(c.category?.trim() || "") ? c.category!.trim() : "其他",
+        // 不默认接受模型结果。用户需要基于原文证据主动选择。
+        selected: false,
         manual: false,
       }));
 

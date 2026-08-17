@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     const text = texts.join("\n");
     if (!text) {
       return NextResponse.json(
-        { error: "没从截图里识别到文字，请确认截图清晰、包含帖子正文。" },
+        { error: "没从截图里识别到文字，请确认图片清晰并包含可读文字。" },
         { status: 422 }
       );
     }
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("OCR error:", err);
     return NextResponse.json(
-      { error: "图片识别失败，请重试，或改用粘贴文本。" },
+      { error: "图片识别失败，请重试，或改为手动填写。" },
       { status: 500 }
     );
   }
