@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { HotelCandidate, TripPlan } from "@/lib/types";
 import { savePlan } from "@/lib/storage";
 
@@ -146,6 +147,10 @@ export default function HotelSetup({ plan }: { plan: TripPlan }) {
           </p>
         )}
         </div>
+        <figure className="hotel-hero__sticker">
+          <Image unoptimized src="/illustrations/self-mocking-bear/ryokan-rest.png" alt="自嘲熊在旅馆榻榻米上休息" width={190} height={190} />
+          <figcaption>位置合适，也要睡得舒服</figcaption>
+        </figure>
       </section>
 
       {loading && <p className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-500">正在查找真实酒店候选，并核对可直达的携程详情页…</p>}

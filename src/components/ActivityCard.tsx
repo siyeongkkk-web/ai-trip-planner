@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ActivityBlock, AdjustAction } from "@/lib/types";
 import { activityMapUrl, activityPlace } from "@/lib/place-utils";
 
@@ -15,6 +16,21 @@ const CATEGORY_STYLES: Record<string, { bg: string; border: string; icon: string
 };
 
 const DEFAULT_STYLE = { bg: "bg-gray-50", border: "border-gray-200", icon: "📍" };
+
+const MEAL_ILLUSTRATIONS: Record<string, { src: string; alt: string }> = {
+  早餐: {
+    src: "/illustrations/self-mocking-bear/local-food.png",
+    alt: "自嘲熊拿着饭团吃早餐",
+  },
+  午餐: {
+    src: "/illustrations/self-mocking-bear/dining.png",
+    alt: "自嘲熊和朋友围桌吃午餐",
+  },
+  晚餐: {
+    src: "/illustrations/self-mocking-bear/cooking.png",
+    alt: "自嘲熊端着料理吃晚餐",
+  },
+};
 
 interface Props {
   block: ActivityBlock;
@@ -33,6 +49,7 @@ export default function ActivityCard({ block, city, timeline = false, onAdjust, 
   const amapUrl = activityMapUrl(block, city);
   const isFood = category.includes("美食");
   const mealLabel = /早餐|午餐|晚餐/.exec(block.title)?.[0];
+  const mealIllustration = mealLabel ? MEAL_ILLUSTRATIONS[mealLabel] : undefined;
   const xhsKeyword = place
     ? `${place}${isFood ? ` ${mealLabel || "美食"}` : " 攻略"}`
     : "";
@@ -55,7 +72,13 @@ export default function ActivityCard({ block, city, timeline = false, onAdjust, 
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className={timeline ? "text-base" : "text-lg"}>{style.icon}</span>
+            {mealIllustration ? (
+              <span className="meal-bear-icon">
+                <Image unoptimized src={mealIllustration.src} alt={mealIllustration.alt} width={52} height={52} />
+              </span>
+            ) : (
+              <span className={timeline ? "text-base" : "text-lg"}>{style.icon}</span>
+            )}
             {!timeline && <span className="text-sm font-medium text-gray-500">{block.startTime} - {block.endTime}</span>}
             <span className="ml-auto text-xs font-medium text-gray-500 tnum">{block.startTime}–{block.endTime} · {block.duration}</span>
           </div>

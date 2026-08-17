@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { parseBookingText } from "@/lib/booking-parser";
 import {
   ConfirmedTransport,
@@ -123,8 +124,8 @@ function LegEditor({
         <legend className="text-xs font-semibold text-gray-600">交通方式</legend>
         <div className="transport-mode-grid mt-2">
           {([
-            { mode: "train" as LongDistanceMode, label: "高铁 / 火车", icon: "🚄" },
-            { mode: "flight" as LongDistanceMode, label: "飞机", icon: "✈️" },
+            { mode: "train" as LongDistanceMode, label: "高铁 / 火车", image: "/illustrations/self-mocking-bear/transport-train.png" },
+            { mode: "flight" as LongDistanceMode, label: "飞机", image: "/illustrations/self-mocking-bear/transport-plane.png" },
           ]).map((option) => (
             <button
               key={option.mode}
@@ -133,7 +134,7 @@ function LegEditor({
               onClick={() => set("mode", option.mode)}
               className={`transport-mode ${value.mode === option.mode ? "is-selected" : ""}`}
             >
-              <span className="text-3xl" aria-hidden="true">{option.icon}</span>
+              <Image unoptimized src={option.image} alt="" width={88} height={68} />
               <span>{option.label}</span>
             </button>
           ))}
@@ -265,6 +266,10 @@ export default function TransportSetup({ plan }: { plan: TripPlan }) {
             <a className="flow-link-button" href="https://flights.ctrip.com/" target="_blank" rel="noreferrer">打开携程机票</a>
           </div>
         </div>
+        <figure className="transport-hero__sticker">
+          <Image unoptimized src="/illustrations/self-mocking-bear/pulling-luggage.png" alt="自嘲熊拉着行李准备出发" width={170} height={170} />
+          <figcaption>票可以慢慢比，信息要认真核</figcaption>
+        </figure>
         <div className="mt-4 grid grid-cols-3 gap-2" aria-label="交通确认进度">
           {[
             { label: "去程信息", ready: outboundReady },
@@ -329,7 +334,7 @@ export default function TransportSetup({ plan }: { plan: TripPlan }) {
         )}
       </section>
       <aside className="taxi-note flow-card">
-        <span className="text-3xl" aria-hidden="true">🚕</span>
+        <Image unoptimized src="/illustrations/self-mocking-bear/transport-taxi.png" alt="自嘲熊乘坐出租车" width={112} height={92} />
         <div>
           <strong>出租车先不在这里确认</strong>
           <p>这里只保存往返大交通；到站后的市内接驳，会在行程阶段按时间阈值比较公交与打车。</p>
