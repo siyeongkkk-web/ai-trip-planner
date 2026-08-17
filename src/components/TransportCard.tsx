@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { TransportBlock } from "@/lib/types";
 import { transportMapUrl } from "@/lib/place-utils";
 
@@ -10,6 +11,17 @@ const MODE_INFO: Record<string, { icon: string; label: string }> = {
   bus: { icon: "🚌", label: "公交" },
   taxi: { icon: "🚕", label: "打车" },
   train: { icon: "🚄", label: "高铁" },
+};
+
+const MODE_ILLUSTRATIONS: Partial<Record<string, { src: string; alt: string }>> = {
+  taxi: {
+    src: "/illustrations/self-mocking-bear/transport-taxi.png",
+    alt: "自嘲熊乘坐出租车",
+  },
+  subway: {
+    src: "/illustrations/self-mocking-bear/transport-subway.png",
+    alt: "自嘲熊在地铁里握着吊环",
+  },
 };
 
 interface Props {
@@ -49,6 +61,7 @@ export default function TransportCard({ block, timeline = false, onConfirm, conf
       }
     : block;
   const info = MODE_INFO[effectiveBlock.mode] || { icon: "🚗", label: "交通" };
+  const illustration = MODE_ILLUSTRATIONS[effectiveBlock.mode];
   const mapUrl = transportMapUrl(effectiveBlock);
   const otherMode = selectedMode === "taxi" ? "subway" : "taxi";
   const otherAlternative = block.alternatives?.find((item) => item.mode === otherMode);
@@ -58,7 +71,13 @@ export default function TransportCard({ block, timeline = false, onConfirm, conf
     const color = effectiveBlock.mode === "walking" ? "var(--mode-walk)" : effectiveBlock.mode === "taxi" ? "var(--mode-taxi)" : "var(--mode-subway)";
     return (
       <div className="tl-leg" style={{ ["--leg-color" as string]: color }}>
-        <span>{info.icon}</span>
+        {illustration ? (
+          <span className="transport-bear-icon">
+            <Image unoptimized src={illustration.src} alt={illustration.alt} width={54} height={46} />
+          </span>
+        ) : (
+          <span>{info.icon}</span>
+        )}
         <span className="tl-legtext">{effectiveBlock.description} · {effectiveBlock.duration}{effectiveBlock.mode === "taxi" && effectiveBlock.cost ? ` · ${effectiveBlock.cost}` : ""}</span>
         {switchable && otherAlternative && (
           <button type="button" onClick={() => setSelectedMode(otherMode)} className="ml-auto rounded-full border border-blue-200 bg-white px-2 py-1 text-[11px] text-blue-700">

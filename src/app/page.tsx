@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import TripForm from "@/components/TripForm";
 import LoadingOverlay from "@/components/LoadingOverlay";
@@ -104,6 +105,16 @@ function HomeContent() {
               <div className="travel-notes" aria-label="规划特点">
                 <span>地图实体可核对</span><span>每一步可返回</span><span>草稿自动保留</span>
               </div>
+              <figure className="intro-bear-sticker">
+                <Image
+                  src="/illustrations/self-mocking-bear-shaved-ice.png"
+                  alt="自嘲熊正在吃刨冰"
+                  width={1160}
+                  height={1160}
+                  priority
+                  unoptimized
+                />
+              </figure>
               <span className="intro-route" aria-hidden="true" />
               <span className="intro-plane" aria-hidden="true">✦</span>
             </section>
@@ -142,9 +153,47 @@ function HomeContent() {
                   <span className="side-hill side-hill--front" />
                   <span className="side-sign"><i /><b /></span>
                   <span className="side-route" />
+                  <Image
+                    className="side-bear-sticker"
+                    src="/illustrations/self-mocking-bear-travel.png"
+                    alt=""
+                    width={1160}
+                    height={1160}
+                  />
                 </div>
                 <p className="side-note">边收拾边计划，路线会慢慢清楚。</p>
               </aside>
+
+              <div className="bear-sticker-wall" aria-label="自嘲熊旅行贴纸">
+                  <figure className="bear-sticker bear-sticker--packing">
+                    <Image
+                      src="/illustrations/self-mocking-bear-packing.png"
+                      alt="自嘲熊正在收拾行李箱"
+                      width={1160}
+                      height={1160}
+                    />
+                    <figcaption>先塞进去再说</figcaption>
+                  </figure>
+                  <figure className="bear-sticker bear-sticker--plane">
+                    <Image
+                      src="/illustrations/self-mocking-bear-plane.png"
+                      alt="自嘲熊坐在飞机座位上"
+                      width={1160}
+                      height={1160}
+                    />
+                    <figcaption>下一站，出发</figcaption>
+                  </figure>
+                  <figure className="bear-sticker bear-sticker--island">
+                    <Image
+                      src="/illustrations/self-mocking-bear-island.png"
+                      alt="自嘲熊戴着花环在海岛旅行"
+                      width={1160}
+                      height={1160}
+                    />
+                    <figcaption>目的地想象中</figcaption>
+                  </figure>
+                  <span className="sticker-postmark" aria-hidden="true">READY<br />TO GO</span>
+              </div>
             </section>
 
             {error && (

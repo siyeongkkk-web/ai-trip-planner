@@ -23,6 +23,7 @@ import { calculateTripCostEstimate } from "@/lib/cost-estimate";
 import { getSelectedSavedCandidateCount, sourcePOIsFromCollection } from "@/lib/poi-source";
 import PlanningSteps from "@/components/PlanningSteps";
 import AdjustmentReceipt from "@/components/AdjustmentReceipt";
+import Image from "next/image";
 import { isCurrentAdjustmentPreview, isLatestAdjustmentResponse } from "@/lib/adjust-transaction";
 
 function PlanContent() {
@@ -490,6 +491,10 @@ function PlanContent() {
             </div>
           )}
         </div>
+        <figure className="itinerary-hero__sticker">
+          <Image unoptimized src="/illustrations/self-mocking-bear/planning.png" alt="自嘲熊正在写旅行计划" width={150} height={150} />
+          <figcaption>路线写进本子里，出发就不慌</figcaption>
+        </figure>
         <div className="itinerary-actions">
           <button
             onClick={copyPlan}
