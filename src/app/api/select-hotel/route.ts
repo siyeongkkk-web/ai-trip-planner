@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildHotelSelectPrompt, SYSTEM_PROMPT } from "@/lib/prompts";
+import { fetchWithTimeout } from "@/lib/fetch-timeout";
 import { TripPlan, DayPlan, HotelRecommendation } from "@/lib/types";
 
 export async function POST(req: NextRequest) {
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
     const { plan, hotelName }: { plan: TripPlan; hotelName: string } = await req.json();
     const userPrompt = buildHotelSelectPrompt(plan, hotelName);
 
-    const response = await fetch("https://api.deepseek.com/chat/completions", {
+    const response = await fetchWithTimeout("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
           { role: "user", content: userPrompt },
         ],
       }),
-    });
+    }, 60_000, "DeepSeek 酒店行程生成");
 
     if (!response.ok) {
       const errorBody = await response.text();

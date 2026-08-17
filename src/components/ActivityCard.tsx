@@ -1,6 +1,7 @@
 "use client";
 
 import { ActivityBlock, AdjustAction } from "@/lib/types";
+import { activityMapUrl, activityPlace } from "@/lib/place-utils";
 
 const CATEGORY_STYLES: Record<string, { bg: string; border: string; icon: string }> = {
   美食: { bg: "bg-orange-50", border: "border-orange-200", icon: "🍜" },
@@ -18,37 +19,59 @@ const DEFAULT_STYLE = { bg: "bg-gray-50", border: "border-gray-200", icon: "📍
 interface Props {
   block: ActivityBlock;
   city: string;
+  timeline?: boolean;
   onAdjust?: (action: AdjustAction) => void;
+  onRequestReplace?: () => void;
   adjusting?: boolean;
+  onCancelAdjust?: () => void;
 }
 
-export default function ActivityCard({ block, city, onAdjust, adjusting }: Props) {
-  const style = CATEGORY_STYLES[block.category] || DEFAULT_STYLE;
-
-  const mapQuery = encodeURIComponent(`${city} ${block.title}`);
-  const amapUrl = `https://www.amap.com/search?query=${mapQuery}`;
-  const isFood = block.category.includes("美食");
-  const xhsKeyword = isFood
-    ? `${city} ${block.title} 必吃 推荐`
-    : `${city} ${block.title} 游玩攻略 路线`;
-  const xhsQuery = encodeURIComponent(xhsKeyword);
-  const xhsUrl = `https://www.xiaohongshu.com/search_result?keyword=${xhsQuery}&type=51`;
+export default function ActivityCard({ block, city, timeline = false, onAdjust, onRequestReplace, adjusting, onCancelAdjust }: Props) {
+  const category = block.category || "休闲";
+  const style = CATEGORY_STYLES[category] || DEFAULT_STYLE;
+  const place = activityPlace(block);
+  const amapUrl = activityMapUrl(block, city);
+  const isFood = category.includes("美食");
+  const mealLabel = /早餐|午餐|晚餐/.exec(block.title)?.[0];
+  const xhsKeyword = place
+    ? `${place}${isFood ? ` ${mealLabel || "美食"}` : " 攻略"}`
+    : "";
+  const xhsUrl = place
+    ? `https://www.xiaohongshu.com/search_result?keyword=${encodeURIComponent(xhsKeyword)}&type=51`
+    : undefined;
+  const safeHighlights = (block.highlights || []).filter(
+    (item) => !/[¥￥]\s*\d|(?:\d+(?:\.\d+)?)\s*元|\/只|\/人/.test(item)
+  );
+  const safeCost =
+    block.cost &&
+    (block.costSource === "amap-reference" ||
+      !/[¥￥]\s*\d|(?:\d+(?:\.\d+)?)\s*元/.test(block.cost))
+      ? block.cost
+      : "价格待核实";
+  const isFlexibleActivity = block.activityKind === "flexible";
 
   return (
-    <div className={`relative rounded-xl border ${style.border} ${style.bg} p-4 shadow-sm transition-all hover:shadow-md`}>
+    <div className={`relative rounded-xl border ${timeline ? "border-[color:var(--line)] bg-[color:var(--paper-card)]" : `${style.border} ${style.bg}`} p-4 shadow-sm transition-all hover:shadow-md`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg">{style.icon}</span>
-            <span className="text-sm font-medium text-gray-500">
-              {block.startTime} - {block.endTime}
-            </span>
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className={timeline ? "text-base" : "text-lg"}>{style.icon}</span>
+            {!timeline && <span className="text-sm font-medium text-gray-500">{block.startTime} - {block.endTime}</span>}
+            <span className="ml-auto text-xs font-medium text-gray-500 tnum">{block.startTime}–{block.endTime} · {block.duration}</span>
           </div>
-          <h3 className="text-base font-semibold text-gray-900 mb-2">{block.title}</h3>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <h3 className="text-base font-semibold text-gray-900">{block.title}</h3>
+            {block.origin === "assistant-recommended" && <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-800">小助手推荐 · 附近</span>}
+            {isFlexibleActivity && <span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-800">自由活动 · 不固化景点</span>}
+            {block.origin === "post" && <span className="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-800">来自帖子清单</span>}
+          </div>
+          {block.address && !isFlexibleActivity && (
+            <p className="mb-2 text-xs text-gray-500">地址：{block.address}</p>
+          )}
 
-          {block.highlights && block.highlights.length > 0 && (
+          {safeHighlights.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-2">
-              {block.highlights.map((h, i) => (
+              {safeHighlights.map((h, i) => (
                 <span
                   key={i}
                   className="text-xs px-2 py-0.5 rounded-full bg-white/80 text-gray-700 border border-gray-200/60"
@@ -61,25 +84,32 @@ export default function ActivityCard({ block, city, onAdjust, adjusting }: Props
 
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
             <span>⏱ {block.duration}</span>
-            <span>💰 {block.cost}</span>
+            <span>💰 {safeCost}</span>
           </div>
           <div className="flex flex-wrap gap-x-3 mt-1.5 text-xs">
-            <a
-              href={amapUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 hover:underline"
-            >
-              📍 高德地图
-            </a>
-            <a
-              href={xhsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-red-500 hover:text-red-700 hover:underline"
-            >
-              📕 小红书攻略
-            </a>
+            {amapUrl && (
+              <a
+                href={amapUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 hover:underline"
+              >
+                📍 高德地图{block.matchedName ? "（已定位）" : ""}
+              </a>
+            )}
+            {xhsUrl && !isFlexibleActivity && (
+              <a
+                href={xhsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-red-500 hover:text-red-700 hover:underline"
+              >
+                📕 小红书攻略
+              </a>
+            )}
+            {!place && (
+              <span className="text-gray-400">这是行程动作，不生成地点搜索</span>
+            )}
           </div>
           {block.tip && (
             <p className="mt-2 text-sm text-gray-500 bg-white/60 rounded-lg px-3 py-1.5">
@@ -106,23 +136,34 @@ export default function ActivityCard({ block, city, onAdjust, adjusting }: Props
             多待会
           </button>
           <button
-            onClick={() => onAdjust("replace")}
+            onClick={() => onRequestReplace ? onRequestReplace() : onAdjust("replace")}
             disabled={adjusting}
             className="text-xs px-3 py-1.5 rounded-full bg-white border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-colors disabled:opacity-50"
           >
-            换一个
+            先看可换选项
           </button>
         </div>
       )}
 
       {adjusting && (
-        <div className="absolute inset-0 bg-white/70 rounded-xl flex items-center justify-center">
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+        <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/80">
+          <div className="flex flex-col items-center gap-3 text-sm text-gray-600">
+            <div className="flex items-center gap-2">
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            AI 正在重新规划...
+              </svg>
+              <span role="status">正在重新计算时间与路线...</span>
+            </div>
+            {onCancelAdjust && (
+              <button
+                type="button"
+                onClick={onCancelAdjust}
+                className="cursor-pointer rounded-full border border-gray-300 bg-white px-4 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+              >
+                取消
+              </button>
+            )}
           </div>
         </div>
       )}

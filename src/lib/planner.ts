@@ -47,7 +47,7 @@ export function clusterIntoDays(points: Pt[], days: number): number[][] {
     centroids.push({ ...points[best] });
   }
 
-  let assign = new Array(n).fill(0);
+  const assign = new Array(n).fill(0);
   for (let iter = 0; iter < 20; iter++) {
     // 分配到最近质心
     let changed = false;

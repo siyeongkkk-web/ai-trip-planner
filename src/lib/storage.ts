@@ -34,6 +34,16 @@ export function clearHistory(): void {
   localStorage.removeItem(STORAGE_KEY);
 }
 
+export function getPlanPath(plan: TripPlan): string {
+  if (plan.dailyPlans.length > 0 || plan.status === "generated") {
+    return `/plan?id=${plan.id}`;
+  }
+  if (plan.outboundTransport && plan.returnTransport) {
+    return `/plan/hotel?id=${plan.id}`;
+  }
+  return `/plan/transport?id=${plan.id}`;
+}
+
 // ===== 新架构：POI 候选集存储 =====
 
 export function savePOICollection(collection: POICollection): void {

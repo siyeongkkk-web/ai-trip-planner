@@ -3,14 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TripPlan } from "@/lib/types";
-import { getHistory, deletePlan, clearHistory } from "@/lib/storage";
+import { getHistory, deletePlan, clearHistory, getPlanPath } from "@/lib/storage";
 
 export default function HistoryPage() {
   const router = useRouter();
   const [plans, setPlans] = useState<TripPlan[]>([]);
 
   useEffect(() => {
-    setPlans(getHistory());
+    const timeout = window.setTimeout(() => setPlans(getHistory()), 0);
+    return () => window.clearTimeout(timeout);
   }, []);
 
   const handleDelete = (id: string) => {
@@ -63,7 +64,7 @@ export default function HistoryPage() {
               className="flex items-center justify-between p-4 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-100 transition-colors"
             >
               <button
-                onClick={() => router.push(`/plan?id=${plan.id}`)}
+                onClick={() => router.push(getPlanPath(plan))}
                 className="flex-1 text-left"
               >
                 <span className="font-medium text-gray-900">
