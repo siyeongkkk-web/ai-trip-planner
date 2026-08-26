@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored Tesseract worker/core bundles served as static browser assets.
+    "public/tesseract/**",
   ]),
 ]);
 

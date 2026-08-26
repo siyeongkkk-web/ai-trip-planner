@@ -8,6 +8,9 @@ import { renameCandidateAndInvalidateVerification } from "@/lib/poi-source";
 
 const CATEGORY_ORDER = ["景点", "美食", "咖啡", "拍照点", "购物", "其他"];
 
+const DEMO_POST =
+  "上海周末两日游：早上先去外滩散步，下午逛豫园，傍晚到武康大楼拍照，第二天去上海博物馆人民广场馆。";
+
 const CATEGORY_STYLE: Record<string, string> = {
   景点: "bg-blue-50 text-blue-700 border-blue-200",
   美食: "bg-orange-50 text-orange-700 border-orange-200",
@@ -31,6 +34,7 @@ export default function ExtractPage() {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrStatus, setOcrStatus] = useState("");
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,24 +70,42 @@ export default function ExtractPage() {
     }
   };
 
-  const handleOcr = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+  const recognizeScreenshots = async (files: File[]) => {
+    if (files.length === 0) return;
     setOcrLoading(true);
+    setOcrStatus("正在加载浏览器识别能力");
     setError(null);
     try {
-      const fd = new FormData();
-      Array.from(files).forEach((file) => fd.append("images", file));
-      const res = await fetch("/api/ocr", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "图片识别失败，请重试。");
+      const { recognizeImagesInBrowser } = await import("@/lib/browser-ocr");
+      const text = await recognizeImagesInBrowser(files, ({ label, progress }) => {
+        setOcrStatus(`${label}${progress > 0 ? ` ${progress}%` : ""}`);
+      });
+      if (!text) {
+        setError("没从截图里识别到文字，请确认图片清晰并包含可读文字。");
         return;
       }
-      setRawText((previous) => (previous ? `${previous}\n${data.text}` : data.text));
+      setRawText((previous) => (previous ? `${previous}\n${text}` : text));
     } catch {
-      setError("网络错误，请检查网络连接后重试。");
+      setError("图片识别没有完成。你可以重试，或直接粘贴帖子正文。");
     } finally {
       setOcrLoading(false);
+      setOcrStatus("");
+    }
+  };
+
+  const handleOcr = (files: FileList | null) =>
+    recognizeScreenshots(files ? Array.from(files) : []);
+
+  const handleDemoOcr = async () => {
+    try {
+      const response = await fetch("/demo/ocr-sample.png");
+      if (!response.ok) throw new Error("示例截图加载失败");
+      const blob = await response.blob();
+      await recognizeScreenshots([
+        new File([blob], "ocr-sample.png", { type: "image/png" }),
+      ]);
+    } catch {
+      setError("示例截图没有加载成功，请刷新页面后重试。");
     }
   };
 
@@ -243,10 +265,20 @@ export default function ExtractPage() {
       <div className="space-y-3 mb-6">
         <label className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${ocrLoading ? "border-gray-200 bg-gray-50 text-gray-400 cursor-wait" : "border-pink-300 bg-pink-50/50 text-pink-700 hover:bg-pink-50"}`}>
           <input type="file" accept="image/*" multiple disabled={ocrLoading} onChange={(event) => { handleOcr(event.target.files); event.target.value = ""; }} className="hidden" />
-          <span className="text-sm font-medium">{ocrLoading ? "正在识别截图文字…" : "上传帖子截图（可多张）"}</span>
+          <span className="text-sm font-medium">{ocrLoading ? ocrStatus || "正在识别截图文字…" : "上传帖子截图（可多张）"}</span>
         </label>
 
+        <p className="text-xs text-gray-600">截图只在当前浏览器中识别，不会上传到服务器；首次加载中文识别能力可能需要一点时间。</p>
+
+        <button type="button" onClick={handleDemoOcr} disabled={ocrLoading} className="w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 text-sm font-medium text-pink-700 hover:bg-pink-50 disabled:opacity-50">
+          先用示例截图试一下 OCR
+        </button>
+
         <div className="flex items-center gap-3"><div className="flex-1 h-px bg-gray-100" /><span className="text-xs text-gray-500">或直接粘贴正文</span><div className="flex-1 h-px bg-gray-100" /></div>
+
+        <button type="button" onClick={() => { setRawText(DEMO_POST); setError(null); setExtracted(false); }} className="w-full rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-medium text-blue-800 hover:bg-blue-100">
+          没带攻略？填入示例文字体验
+        </button>
 
         <textarea value={rawText} onChange={(event) => setRawText(event.target.value)} rows={7} placeholder="粘贴小红书帖子正文。识别结果会保留对应的原文片段，供你逐条核对。" className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm leading-relaxed resize-none" />
         <input type="text" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="帖子链接（可选，仅作记录，不会自动抓取）" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm" />

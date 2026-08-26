@@ -54,7 +54,7 @@ async function estimateDurations(
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({
-          model: "deepseek-chat",
+          model: "deepseek-v4-flash",
           max_tokens: 2048,
           temperature: 0.2,
           messages: [

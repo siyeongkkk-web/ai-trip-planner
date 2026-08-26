@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "deepseek-chat",
+        model: "deepseek-v4-flash",
         max_tokens: 4096,
         // NER 是确定性抽取任务，温度调低减少自由发挥/编造
         temperature: 0.2,

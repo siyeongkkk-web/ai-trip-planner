@@ -102,7 +102,7 @@ Agent 给出方案 → 用户确认 → 写入行程
 - Next.js 16、React 19、TypeScript、Tailwind CSS；
 - DeepSeek API：地点提取、活动初稿和自然语言理解；
 - 高德地图 Web 服务：地点核验、路线、周边搜索和天气；
-- macOS Vision：本地中文截图 OCR；
+- Tesseract.js：浏览器端中文为主的截图 OCR，图片不上传服务器；
 - localStorage：在浏览器本地保存行程草稿和历史记录。
 
 ## 在本地运行完整版本
@@ -122,7 +122,7 @@ AMAP_KEY=your-amap-web-service-key
 
 然后打开 <http://localhost:3000>。
 
-截图 OCR 使用 macOS Vision，因此仅能在安装 Swift 的 macOS 本地环境运行。其他页面不受这一限制。
+截图 OCR 在浏览器本地运行，首次使用会加载中文识别能力；图片不会上传到服务器。
 
 ## 项目检查
 

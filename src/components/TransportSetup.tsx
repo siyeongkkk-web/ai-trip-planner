@@ -59,6 +59,7 @@ function LegEditor({
   onDetectedPrice: (price: number, kind: "per-leg" | "round-trip-total") => void;
 }) {
   const [ocrMessage, setOcrMessage] = useState("");
+  const [ocrStatus, setOcrStatus] = useState("");
   const [recognizing, setRecognizing] = useState(false);
   const set = <K extends keyof Draft>(key: K, next: Draft[K]) =>
     onChange({ ...value, [key]: next });
@@ -66,17 +67,18 @@ function LegEditor({
   const importScreenshot = async (file?: File) => {
     if (!file) return;
     setRecognizing(true);
+    setOcrStatus("正在加载浏览器识别能力");
     setOcrMessage("");
     try {
-      const form = new FormData();
-      form.append("images", file);
-      const response = await fetch("/api/ocr", { method: "POST", body: form });
-      const data = await response.json();
-      if (!response.ok) {
-        setOcrMessage(data.error || "截图识别失败。");
+      const { recognizeImagesInBrowser } = await import("@/lib/browser-ocr");
+      const text = await recognizeImagesInBrowser([file], ({ label, progress }) => {
+        setOcrStatus(`${label}${progress > 0 ? ` ${progress}%` : ""}`);
+      });
+      if (!text) {
+        setOcrMessage("没有识别到可用文字，请换一张清晰截图或手动填写。");
         return;
       }
-      const parsed = parseBookingText(data.text || "");
+      const parsed = parseBookingText(text);
       onChange({
         ...value,
         mode: parsed.mode || value.mode,
@@ -98,6 +100,7 @@ function LegEditor({
       setOcrMessage("截图识别失败，请手动填写。");
     } finally {
       setRecognizing(false);
+      setOcrStatus("");
     }
   };
 
@@ -109,7 +112,7 @@ function LegEditor({
           <p className="mt-0.5 text-xs text-gray-500">{hint}</p>
         </div>
         <label className="cursor-pointer rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-medium text-sky-800">
-          {recognizing ? "识别中…" : "导入订单截图"}
+          {recognizing ? ocrStatus || "识别中…" : "导入订单截图"}
           <input
             type="file"
             accept="image/*"
@@ -259,7 +262,7 @@ export default function TransportSetup({ plan }: { plan: TripPlan }) {
           <span className="travel-kicker">第二站 · 把来回先定好</span>
           <h1>确认真实往返交通</h1>
           <p>
-          可以手填，也可以导入订单/搜索结果截图预填。截图只在本机识别，保存前必须由你确认。
+          可以手填，也可以导入订单/搜索结果截图预填。截图只在当前浏览器识别，保存前必须由你确认。
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <a className="flow-link-button" href="https://kyfw.12306.cn/otn/leftTicket/init" target="_blank" rel="noreferrer">打开 12306</a>
