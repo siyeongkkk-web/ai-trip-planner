@@ -42,6 +42,10 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: "deepseek-v4-flash",
         max_tokens: 8192,
+        // 行程生成已经由提示词和服务端安全规则约束。关闭默认 thinking，
+        // 把完整输出预算留给最终行程 JSON，避免 content 为空。
+        thinking: { type: "disabled" },
+        response_format: { type: "json_object" },
         temperature: 0.7,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
@@ -60,18 +64,20 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || "";
-
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error("Failed to parse AI response:", text);
+    const choice = data.choices?.[0];
+    const text = choice?.message?.content;
+    if (typeof text !== "string" || !text.trim()) {
+      console.error("DeepSeek returned empty plan content", {
+        finishReason: choice?.finish_reason,
+        hasReasoningContent: Boolean(choice?.message?.reasoning_content),
+      });
       return NextResponse.json(
-        { error: "AI 返回格式异常，请重试。" },
-        { status: 500 }
+        { error: "AI 没有生成完整行程，请重试。" },
+        { status: 502 }
       );
     }
 
-    const parsed = JSON.parse(jsonMatch[0]) as { dailyPlans?: unknown };
+    const parsed = JSON.parse(text) as { dailyPlans?: unknown };
     const normalized = normalizeDailyPlans(parsed.dailyPlans);
     if (normalized.length === 0 || normalized.every((day) => day.blocks.length === 0)) {
       return NextResponse.json(
