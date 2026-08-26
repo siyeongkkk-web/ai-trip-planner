@@ -46,6 +46,10 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         model: "deepseek-v4-flash",
         max_tokens: 4096,
+        // 地点抽取是确定性的结构化任务。关闭默认 thinking，避免长 OCR
+        // 文本把输出预算耗在 reasoning_content，导致最终 content 为空。
+        thinking: { type: "disabled" },
+        response_format: { type: "json_object" },
         // NER 是确定性抽取任务，温度调低减少自由发挥/编造
         temperature: 0.2,
         messages: [
@@ -65,20 +69,20 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || "";
-
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error("Failed to parse AI response:", text);
+    const choice = data.choices?.[0];
+    const text = choice?.message?.content;
+    if (typeof text !== "string" || !text.trim()) {
+      console.error("DeepSeek returned empty extraction content", {
+        finishReason: choice?.finish_reason,
+        hasReasoningContent: Boolean(choice?.message?.reasoning_content),
+      });
       return NextResponse.json(
-        { error: "AI 返回格式异常，请重试。" },
-        { status: 500 }
+        { error: "AI 没有生成提取结果，请重试，或删减明显的乱码后再试。" },
+        { status: 502 }
       );
     }
 
-    const parsed: { city?: string; candidates?: RawCandidate[] } = JSON.parse(
-      jsonMatch[0]
-    );
+    const parsed: { city?: string; candidates?: RawCandidate[] } = JSON.parse(text);
 
     const source = normalizeForEvidence(input.text);
     const seen = new Set<string>();
