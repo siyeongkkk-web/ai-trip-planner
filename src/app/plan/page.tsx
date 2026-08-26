@@ -97,7 +97,7 @@ function PlanContent() {
             savePlan(repaired);
           })
           .catch(() => {
-            setError("旧行程自动修复失败，你可以重新生成一次行程。");
+            setError("行程已经生成，但地图路线核对暂未完成。刷新本页可以重试，不需要重新填写前面的信息。");
           })
           .finally(() => setRepairing(false));
       }
@@ -581,7 +581,7 @@ function PlanContent() {
       )}
       {repairing && (
         <div className="mb-4 rounded-xl border border-teal-200 bg-teal-50 p-3 text-sm text-teal-800">
-          正在修复旧行程中的重复活动、模糊餐厅、缺失路线和时间冲突…
+          行程已生成，正在后台核对地点、真实路线和时间衔接；你可以先查看活动顺序…
         </div>
       )}
 

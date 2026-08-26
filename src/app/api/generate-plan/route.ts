@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildGeneratePrompt, SYSTEM_PROMPT } from "@/lib/prompts";
-import { normalizeDailyPlans, rebuildPlanItinerary } from "@/lib/plan-safety";
+import { normalizeDailyPlans } from "@/lib/plan-safety";
 import { fetchWithTimeout } from "@/lib/fetch-timeout";
 import { TripInput, TripPlan } from "@/lib/types";
 
@@ -106,12 +106,11 @@ export async function POST(req: NextRequest) {
       returnTransport: input.returnTransport,
       selectedHotel: input.selectedHotel,
       status: "generated",
-      engineVersion: 7,
+      // 先返回可查看的 AI 活动顺序。行程页会在后台调用 repair-plan，
+      // 用高德逐段核对并升级到 engineVersion 7，避免长请求被浏览器断开。
+      engineVersion: 6,
       dailyPlans: normalized,
     };
-    if (process.env.AMAP_KEY) {
-      plan.dailyPlans = await rebuildPlanItinerary(plan);
-    }
 
     return NextResponse.json(plan);
   } catch (err) {
