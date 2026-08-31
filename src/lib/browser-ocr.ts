@@ -1,21 +1,58 @@
-import { createWorker, OEM, PSM } from "tesseract.js";
+import { PaddleOCR } from "@paddleocr/paddleocr-js";
+import type { OcrResultItem } from "@paddleocr/paddleocr-js";
 
 export interface BrowserOcrProgress {
   label: string;
   progress: number;
 }
 
-function normalizeChineseOcrSpacing(value: string): string {
-  return value.replace(/([\u3400-\u9fff])\s+(?=[\u3400-\u9fff])/g, "$1");
+type BrowserOcrEngine = Awaited<ReturnType<typeof PaddleOCR.create>>;
+
+let enginePromise: Promise<BrowserOcrEngine> | null = null;
+
+function getEngine(): Promise<BrowserOcrEngine> {
+  if (!enginePromise) {
+    enginePromise = PaddleOCR.create({
+      lang: "ch",
+      ocrVersion: "PP-OCRv5",
+      worker: true,
+      textDetLimitSideLen: 1600,
+      textDetMaxSideLimit: 4000,
+      textRecScoreThresh: 0.45,
+      ortOptions: {
+        backend: "wasm",
+        wasmPaths: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.29.0/dist/",
+        numThreads: 1,
+        simd: true,
+      },
+    }).catch((error) => {
+      enginePromise = null;
+      throw error;
+    });
+  }
+  return enginePromise;
 }
 
-function progressLabel(status: string, fileIndex: number, fileCount: number): string {
-  const prefix = fileCount > 1 ? `第 ${fileIndex + 1}/${fileCount} 张 · ` : "";
-  if (status === "loading tesseract core") return `${prefix}正在加载识别引擎`;
-  if (status === "loading language traineddata") return `${prefix}正在加载中文识别能力`;
-  if (status === "initializing api") return `${prefix}正在准备识别`;
-  if (status === "recognizing text") return `${prefix}正在识别文字`;
-  return `${prefix}正在处理截图`;
+function readingOrder(items: OcrResultItem[]): OcrResultItem[] {
+  return [...items].sort((left, right) => {
+    const leftTop = Math.min(...left.poly.map((point) => point[1]));
+    const rightTop = Math.min(...right.poly.map((point) => point[1]));
+    const leftHeight = Math.max(...left.poly.map((point) => point[1])) - leftTop;
+    const rightHeight = Math.max(...right.poly.map((point) => point[1])) - rightTop;
+    const sameLineTolerance = Math.max(8, Math.min(leftHeight, rightHeight) * 0.6);
+    if (Math.abs(leftTop - rightTop) > sameLineTolerance) return leftTop - rightTop;
+
+    const leftEdge = Math.min(...left.poly.map((point) => point[0]));
+    const rightEdge = Math.min(...right.poly.map((point) => point[0]));
+    return leftEdge - rightEdge;
+  });
+}
+
+function resultText(items: OcrResultItem[]): string {
+  return readingOrder(items)
+    .map((item) => item.text.trim())
+    .filter(Boolean)
+    .join("\n");
 }
 
 export async function recognizeImagesInBrowser(
@@ -24,32 +61,26 @@ export async function recognizeImagesInBrowser(
 ): Promise<string> {
   if (files.length === 0) return "";
 
-  let fileIndex = 0;
-  const worker = await createWorker("chi_sim", OEM.LSTM_ONLY, {
-    workerPath: "/tesseract/worker.min.js",
-    corePath: "/tesseract/core",
-    langPath: "/tesseract/lang",
-    logger: (message) => {
-      onProgress?.({
-        label: progressLabel(message.status, fileIndex, files.length),
-        progress: Math.round((message.progress || 0) * 100),
-      });
-    },
-  });
+  onProgress?.({ label: "正在加载中文识别能力", progress: 5 });
+  const engine = await getEngine();
+  onProgress?.({ label: "中文识别已就绪", progress: 15 });
 
-  try {
-    await worker.setParameters({
-      preserve_interword_spaces: "1",
-      tessedit_pageseg_mode: PSM.AUTO,
+  const texts: string[] = [];
+  for (let index = 0; index < files.length; index += 1) {
+    const prefix = files.length > 1 ? `第 ${index + 1}/${files.length} 张 · ` : "";
+    onProgress?.({
+      label: `${prefix}正在识别文字`,
+      progress: 15 + Math.round((index / files.length) * 80),
     });
-    const texts: string[] = [];
-    for (fileIndex = 0; fileIndex < files.length; fileIndex += 1) {
-      const result = await worker.recognize(files[fileIndex]);
-      const text = normalizeChineseOcrSpacing(result.data.text).trim();
-      if (text) texts.push(text);
-    }
-    return texts.join("\n");
-  } finally {
-    await worker.terminate();
+    const [result] = await engine.predict(files[index], {
+      textDetLimitSideLen: 1600,
+      textDetMaxSideLimit: 4000,
+      textRecScoreThresh: 0.45,
+    });
+    const text = result ? resultText(result.items) : "";
+    if (text) texts.push(text);
   }
+
+  onProgress?.({ label: "识别完成", progress: 100 });
+  return texts.join("\n");
 }
