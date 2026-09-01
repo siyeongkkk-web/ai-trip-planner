@@ -72,7 +72,12 @@ export default function PlanningSteps({ current, planId, hasGeneratedItinerary =
       </ol>
       <div className="step-landmarks" aria-hidden="true">
         <span className="step-landmark step-landmark--train"><i /><b /><b /></span>
-        <span className="step-landmark step-landmark--hotel"><i /><b /></span>
+        <svg className="step-landmark step-landmark--hotel" viewBox="0 0 36 32" focusable="false">
+          <path className="hotel-roof" d="M3 15 18 3l15 12" />
+          <path className="hotel-house" d="M6 13v16h24V13" />
+          <path className="hotel-door" d="M14 29V19h8v10" />
+          <path className="hotel-window" d="M25 18h3v4h-3z" />
+        </svg>
         <span className="step-landmark step-landmark--flag"><i /><b /></span>
       </div>
       <p className="sr-only">当前步骤：{STEPS[currentIndex].label}。已完成的步骤可以返回查看。</p>

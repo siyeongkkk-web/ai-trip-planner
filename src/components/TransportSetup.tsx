@@ -67,7 +67,7 @@ function LegEditor({
   const importScreenshot = async (file?: File) => {
     if (!file) return;
     setRecognizing(true);
-    setOcrStatus("正在加载浏览器识别能力");
+    setOcrStatus("正在加载中文识别能力");
     setOcrMessage("");
     try {
       const { recognizeImagesInBrowser } = await import("@/lib/browser-ocr");
@@ -75,7 +75,7 @@ function LegEditor({
         setOcrStatus(`${label}${progress > 0 ? ` ${progress}%` : ""}`);
       });
       if (!text) {
-        setOcrMessage("没有识别到可用文字，请换一张清晰截图或手动填写。");
+        setOcrMessage("没有识别到文字，请换一张清晰截图或手动填写。");
         return;
       }
       const parsed = parseBookingText(text);
@@ -215,8 +215,6 @@ export default function TransportSetup({ plan }: { plan: TripPlan }) {
       : 0
   );
   const [error, setError] = useState("");
-  const outboundReady = complete(outbound);
-  const returnReady = complete(returnTrip);
   const priceReady = pricingKind === "per-leg"
     ? outboundPrice > 0 && returnPrice > 0
     : roundTripPrice > 0;
@@ -261,9 +259,7 @@ export default function TransportSetup({ plan }: { plan: TripPlan }) {
         <div className="transport-hero__copy">
           <span className="travel-kicker">第二站 · 把来回先定好</span>
           <h1>确认真实往返交通</h1>
-          <p>
-          可以手填，也可以导入订单/搜索结果截图预填。截图只在当前浏览器识别，保存前必须由你确认。
-          </p>
+          <p>填写往返班次，或导入订单截图快速预填。</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <a className="flow-link-button" href="https://kyfw.12306.cn/otn/leftTicket/init" target="_blank" rel="noreferrer">打开 12306</a>
             <a className="flow-link-button" href="https://flights.ctrip.com/" target="_blank" rel="noreferrer">打开携程机票</a>
@@ -273,18 +269,6 @@ export default function TransportSetup({ plan }: { plan: TripPlan }) {
           <Image unoptimized src="/illustrations/self-mocking-bear/pulling-luggage.png" alt="自嘲熊拉着行李准备出发" width={170} height={170} />
           <figcaption>票可以慢慢比，信息要认真核</figcaption>
         </figure>
-        <div className="mt-4 grid grid-cols-3 gap-2" aria-label="交通确认进度">
-          {[
-            { label: "去程信息", ready: outboundReady },
-            { label: "返程信息", ready: returnReady },
-            { label: "价格", ready: priceReady },
-          ].map((item) => (
-            <div key={item.label} className={`rounded-lg border px-2 py-2 text-center text-xs font-medium ${item.ready ? "border-emerald-300 bg-white text-emerald-800" : "border-sky-200 bg-white/70 text-sky-800"}`}>
-              <span className="mr-1" aria-hidden="true">{item.ready ? "✓" : "○"}</span>{item.label}
-            </div>
-          ))}
-        </div>
-        <p className="transport-hero__task">在真实票务平台选定班次 → 回来填写或导入截图 → 核对全部字段后再保存。</p>
       </section>
 
       <LegEditor
@@ -336,13 +320,6 @@ export default function TransportSetup({ plan }: { plan: TripPlan }) {
           <label className="mt-3 block text-xs text-gray-600">往返单人总价<input type="number" min={0} value={roundTripPrice || ""} onChange={(event) => setRoundTripPrice(Number(event.target.value) || 0)} className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900" /></label>
         )}
       </section>
-      <aside className="taxi-note flow-card">
-        <Image unoptimized src="/illustrations/self-mocking-bear/transport-taxi.png" alt="自嘲熊乘坐出租车" width={112} height={92} />
-        <div>
-          <strong>出租车先不在这里确认</strong>
-          <p>这里只保存往返大交通；到站后的市内接驳，会在行程阶段按时间阈值比较公交与打车。</p>
-        </div>
-      </aside>
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       <button onClick={confirm} className="flow-primary-button">确认交通，进入酒店选择 →</button>
     </div>

@@ -82,10 +82,11 @@ body {
 .step-landmark--train b { position: absolute; bottom: -5px; width: 7px; height: 7px; border: 2px solid var(--ink); border-radius: 50%; background: var(--amber); }
 .step-landmark--train b:nth-of-type(1) { left: 4px; }
 .step-landmark--train b:nth-of-type(2) { right: 4px; }
-.step-landmark--hotel { left: 50%; top: 9px; width: 32px; height: 23px; overflow: hidden; border: 2px solid var(--rose); border-radius: 4px 4px 2px 2px; background: #fff8dd; }
-.step-landmark--hotel::before { content: ""; position: absolute; left: 5px; top: 4px; width: 7px; height: 7px; border: 2px solid var(--rose); border-radius: 50%; background: var(--paper-card); }
-.step-landmark--hotel::after { content: "H"; position: absolute; right: 4px; top: 1px; color: var(--rose); font-family: var(--font-mono); font-size: 13px; line-height: 1; font-weight: 950; }
-.step-landmark--hotel i { position: absolute; left: 4px; right: 4px; bottom: 3px; height: 5px; border: 2px solid var(--ink); border-radius: 2px; background: var(--sky); }
+.step-landmark--hotel { left: 50%; top: 4px; width: 36px; height: 32px; overflow: visible; color: var(--rose); }
+.step-landmark--hotel path { stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.step-landmark--hotel .hotel-roof, .step-landmark--hotel .hotel-house { fill: #fff8dd; }
+.step-landmark--hotel .hotel-door { fill: var(--sky); }
+.step-landmark--hotel .hotel-window { fill: var(--paper-card); stroke-width: 1.8; }
 .step-landmark--flag { left: 75%; top: 5px; width: 28px; height: 31px; border-left: 3px solid var(--route); }
 .step-landmark--flag i { position: absolute; left: 0; top: 0; width: 23px; height: 14px; border: 2px solid var(--ink); border-left: 0; background: var(--amber); transform: skewY(-8deg); }
 .step-landmark--flag b { position: absolute; left: -7px; bottom: 0; width: 17px; border-top: 3px solid var(--route); }
@@ -132,8 +133,6 @@ body {
   background: #fff; box-shadow: 3px 3px 0 rgb(23 36 43 / 18%); transform: rotate(-4deg);
 }
 .intro-bear-sticker img { width: 100%; height: 100%; object-fit: cover; }
-.travel-notes { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-bottom: 4px; }
-.travel-notes span { padding: 7px 10px; border: 1.5px solid var(--ink); border-radius: 999px; background: rgb(255 253 243 / 82%); font-size: 12px; font-weight: 800; }
 
 .planner-workspace { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(280px, .55fr); gap: 20px; align-items: start; }
 .planner-side { display: flex; flex-direction: column; gap: 18px; }
@@ -305,10 +304,6 @@ body {
 .transport-mode.is-selected { border-color: var(--ink); background: #fff4c9; color: var(--ink); box-shadow: 3px 3px 0 var(--ink); }
 .transport-mode img { width: 72px; height: 64px; object-fit: contain; }
 .transport-price-card { background: #eef6df; }
-.taxi-note { display: flex; align-items: center; gap: 18px; padding: 14px 20px; background: #fff4c9; }
-.taxi-note img { flex: 0 0 auto; width: 104px; height: 82px; object-fit: contain; }
-.taxi-note strong { color: var(--ink); font-size: 14px; }
-.taxi-note p { margin-top: 4px; color: var(--ink-soft); font-size: 12px; line-height: 1.55; }
 
 .hotel-hero { display: grid; grid-template-columns: minmax(0, 1fr) 210px; gap: 24px; align-items: center; background: #f6d9d0; overflow: hidden; }
 .hotel-hero__sticker { transform: rotate(-2deg); }
@@ -317,28 +312,43 @@ body {
 .hotel-confirm-card { background: #e8f3df; }
 
 .itinerary-shell { width: min(100%, 1100px); }
+.itinerary-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 4px 2px 10px; }
+.itinerary-toolbar .flow-back { margin-bottom: 0; }
 .itinerary-hero {
-  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 155px auto; gap: 20px; align-items: center;
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 118px; gap: 18px 24px; align-items: center;
   margin-bottom: 18px; background: #bfe6f2;
 }
+.itinerary-hero--with-bookings { grid-template-columns: 310px minmax(0, 1fr) 118px; column-gap: 18px; }
+.itinerary-bookings { min-width: 0; align-self: center; }
+.itinerary-booking-row { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 10px; padding: 10px 0; }
+.itinerary-booking-row + .itinerary-booking-row { position: relative; }
+.itinerary-booking-row + .itinerary-booking-row::before {
+  position: absolute; top: 0; left: 0; width: 50%; border-top: 1px dashed rgb(23 36 43 / 24%); content: "";
+}
+.itinerary-booking-row h2 { color: var(--route-deep); font-size: 12px; font-weight: 950; }
+.itinerary-booking-row p { overflow: hidden; color: var(--ink-soft); font-size: 12px; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+.itinerary-booking-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px; }
+.itinerary-booking-links a { color: var(--route-deep); font-size: 11px; font-weight: 800; text-decoration: underline; text-underline-offset: 2px; }
+.itinerary-booking-links a:focus-visible { border-radius: 4px; outline: 2px solid var(--route-deep); outline-offset: 2px; }
+.itinerary-hero__side { width: 118px; align-self: center; transform: translateX(-12px); }
 .itinerary-hero__sticker { transform: rotate(2deg); }
-.itinerary-actions { align-self: start; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.itinerary-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .itinerary-actions > button, .itinerary-actions summary {
-  min-height: 40px; border: 2px solid var(--ink); border-radius: 10px; background: var(--paper-card) !important;
-  color: var(--ink) !important; font-weight: 800; box-shadow: 2px 2px 0 var(--ink); cursor: pointer;
+  min-width: 108px; min-height: 36px; border: 1.5px solid var(--ink); border-radius: 10px; background: var(--paper-card) !important;
+  color: var(--ink) !important; font-size: 12px; font-weight: 800; text-align: center; box-shadow: 2px 2px 0 var(--ink); cursor: pointer;
 }
 
 @media (max-width: 820px) {
   .planning-intro { align-items: flex-start; flex-direction: column; gap: 14px; }
-  .travel-notes { justify-content: flex-start; }
   .planner-workspace { grid-template-columns: 1fr; }
   .planner-side { display: grid; grid-template-columns: 1fr .75fr; }
   .bear-sticker-wall { grid-column: 1 / -1; grid-template-columns: repeat(3, 1fr); padding-left: 24px; padding-right: 24px; }
   .side-note { display: none; }
   .intro-bear-sticker { left: auto; right: 18px; bottom: 6px; width: 76px; height: 76px; opacity: .8; }
   .transport-hero, .hotel-hero { grid-template-columns: minmax(0, 1fr) 160px; }
-  .itinerary-hero { grid-template-columns: minmax(0, 1fr) 135px; }
-  .itinerary-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .itinerary-hero, .itinerary-hero--with-bookings { grid-template-columns: minmax(0, 1fr) 118px; }
+  .itinerary-hero__side { grid-column: 2; grid-row: 1; transform: none; }
+  .itinerary-bookings { grid-column: 1 / -1; grid-row: 2; }
 }
 
 @media (max-width: 520px) {
@@ -347,7 +357,6 @@ body {
   .planning-steps { padding-left: 6px; padding-right: 6px; }
   .planning-intro { margin-top: 14px; padding: 14px 6px 16px; }
   .planning-intro h1 { font-size: 32px; }
-  .travel-notes span { font-size: 11px; }
   .planner-side { display: block; }
   .side-illustration { display: none; }
   .collection-entry { grid-template-columns: auto 1fr; padding: 19px 16px; box-shadow: 4px 5px 0 var(--ink); }
@@ -366,11 +375,15 @@ body {
   .flow-card { padding: 16px; box-shadow: 3px 4px 0 rgb(23 36 43 / 13%); }
   .transport-hero, .hotel-hero, .itinerary-hero { display: block; }
   .transport-hero__sticker, .hotel-hero__sticker, .itinerary-hero__sticker { display: none; }
+  .itinerary-bookings { margin-top: 14px; }
+  .itinerary-hero__side { display: block; }
+  .itinerary-toolbar { align-items: flex-start; }
+  .itinerary-actions { justify-content: stretch; }
+  .itinerary-actions > button, .itinerary-actions > details { flex: 1; }
+  .itinerary-actions summary { width: 100%; }
   .transport-mode { grid-template-columns: 52px 1fr; min-height: 68px; padding: 6px 8px; }
   .transport-mode img { width: 50px; height: 50px; }
   .leg-editor .grid-cols-2 { grid-template-columns: 1fr; }
-  .taxi-note img { width: 76px; height: 66px; }
-  .itinerary-actions { margin-top: 16px; }
 }
 
 /* 等宽数字：时刻/金额像发车牌 */

@@ -50,13 +50,11 @@ export default function PlanHealthPanel({ plan, onOpenDay, onOpenSavedPlaces, on
   };
 
   return (
-    <section className="mb-4 rounded-xl border border-teal-200 bg-teal-50 p-4" aria-live="polite">
+    <section className="mb-4 rounded-xl border border-teal-200 bg-teal-50 p-3" aria-live="polite">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-teal-950">行程健康检查</h2>
-          <p className="mt-1 text-xs leading-5 text-teal-900">
-            {loading ? "正在检查已保存地点、地图实体和时间安排…" : report?.summary || "等待检查行程状态。"}
-          </p>
+          <h2 className="text-sm font-semibold text-teal-950">行程提醒</h2>
+          <p className="mt-1 text-xs text-teal-900">{loading ? "正在检查…" : report?.issues.length ? `${report.issues.length} 项需要确认` : "暂未发现需要处理的问题"}</p>
         </div>
         <button
           type="button"
@@ -64,7 +62,7 @@ export default function PlanHealthPanel({ plan, onOpenDay, onOpenSavedPlaces, on
           disabled={loading}
           className="shrink-0 rounded-lg border border-teal-300 bg-white px-3 py-1.5 text-xs font-medium text-teal-800 hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "检查中…" : "重新检查"}
+          {loading ? "检查中…" : "刷新"}
         </button>
       </div>
       {error && <p className="mt-3 text-xs text-red-700">{error}</p>}
@@ -75,11 +73,10 @@ export default function PlanHealthPanel({ plan, onOpenDay, onOpenSavedPlaces, on
               <p className="text-sm font-medium text-gray-900">
                 {issue.severity === "risk" ? "需核对 · " : "待确认 · "}{issue.title}
               </p>
-              <p className="mt-1 text-xs leading-5 text-gray-600">{issue.detail}</p>
               <button
                 type="button"
                 onClick={() => handleIssue(issue)}
-                className="mt-2 text-xs font-medium text-teal-700 underline underline-offset-2 hover:text-teal-900"
+                className="mt-1.5 text-xs font-medium text-teal-700 underline underline-offset-2 hover:text-teal-900"
               >
                 {issue.actionLabel}
               </button>

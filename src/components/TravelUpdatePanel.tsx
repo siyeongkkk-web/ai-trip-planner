@@ -38,15 +38,11 @@ export default function TravelUpdatePanel({ plan, activeDay, onOpenAssistant }: 
   }, [activeDay, plan]);
 
   return (
-    <section className="mb-4 rounded-xl border border-sky-200 bg-sky-50 p-4" aria-live="polite">
+    <section className="mb-4 rounded-xl border border-sky-200 bg-sky-50 p-3" aria-live="polite">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-sky-950">出行更新检查</h2>
-          <p className="mt-1 text-xs leading-5 text-sky-900">
-            {loading
-              ? "正在读取高德天气与当前日期首个已核对地点周边路况…"
-              : report?.summary || "检查天气和区域交通态势；只产出待确认项，不会自动改行程。"}
-          </p>
+          <h2 className="text-sm font-semibold text-sky-950">天气与交通</h2>
+          <p className="mt-1 text-xs text-sky-900">{loading ? "正在检查…" : report?.issues.length ? `${report.issues.length} 项需要确认` : "需要时可检查当天情况"}</p>
         </div>
         <button
           type="button"
@@ -54,7 +50,7 @@ export default function TravelUpdatePanel({ plan, activeDay, onOpenAssistant }: 
           disabled={loading}
           className="shrink-0 rounded-lg border border-sky-300 bg-white px-3 py-1.5 text-xs font-medium text-sky-800 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? "检查中…" : "检查当前日期"}
+          {loading ? "检查中…" : "检查当天"}
         </button>
       </div>
       {error && <p className="mt-3 text-xs text-red-700">{error}</p>}
@@ -65,11 +61,10 @@ export default function TravelUpdatePanel({ plan, activeDay, onOpenAssistant }: 
               <p className="text-sm font-medium text-gray-900">
                 {issue.severity === "risk" ? "需核对 · " : "待确认 · "}{issue.title}
               </p>
-              <p className="mt-1 text-xs leading-5 text-gray-600">{issue.detail}</p>
               <button
                 type="button"
                 onClick={() => onOpenAssistant(issue.suggestedPrompt)}
-                className="mt-2 text-xs font-medium text-sky-700 underline underline-offset-2 hover:text-sky-900"
+                className="mt-1.5 text-xs font-medium text-sky-700 underline underline-offset-2 hover:text-sky-900"
               >
                 {issue.actionLabel}
               </button>

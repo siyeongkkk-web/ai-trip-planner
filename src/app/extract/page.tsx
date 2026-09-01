@@ -8,9 +8,6 @@ import { renameCandidateAndInvalidateVerification } from "@/lib/poi-source";
 
 const CATEGORY_ORDER = ["景点", "美食", "咖啡", "拍照点", "购物", "其他"];
 
-const DEMO_POST =
-  "上海周末两日游：早上先去外滩散步，下午逛豫园，傍晚到武康大楼拍照，第二天去上海博物馆人民广场馆。";
-
 const CATEGORY_STYLE: Record<string, string> = {
   景点: "bg-blue-50 text-blue-700 border-blue-200",
   美食: "bg-orange-50 text-orange-700 border-orange-200",
@@ -96,19 +93,6 @@ export default function ExtractPage() {
   const handleOcr = (files: FileList | null) =>
     recognizeScreenshots(files ? Array.from(files) : []);
 
-  const handleDemoOcr = async () => {
-    try {
-      const response = await fetch("/demo/ocr-sample.png");
-      if (!response.ok) throw new Error("示例截图加载失败");
-      const blob = await response.blob();
-      await recognizeScreenshots([
-        new File([blob], "ocr-sample.png", { type: "image/png" }),
-      ]);
-    } catch {
-      setError("示例截图没有加载成功，请刷新页面后重试。");
-    }
-  };
-
   const toggle = (id: string) => {
     setSavedId(null);
     setCandidates((previous) =>
@@ -174,10 +158,6 @@ export default function ExtractPage() {
     (candidate) => candidate.mapVerification?.status !== "matched"
   );
   const canSave = selectedCount > 0 && verifiedCount === selectedCount;
-  const verificationPercent = selectedCount > 0
-    ? Math.round((verifiedCount / selectedCount) * 100)
-    : 0;
-
   const verifySelected = async () => {
     if (!selectedCount) {
       setError("请先选择至少一个想去的地点。");
@@ -259,7 +239,7 @@ export default function ExtractPage() {
 
       <h1 className="text-2xl font-bold text-gray-900 mb-1">从小红书帖子提取地点</h1>
       <p className="text-sm text-gray-600 mb-6">
-        先从你提供的正文或截图中找原文地点，再由你选择、编辑并用地图核对；应用不会读取链接正文，也不会补写帖子里没有的地点。
+        上传截图或粘贴正文，选出这次旅行想去的地点。
       </p>
 
       <div className="space-y-3 mb-6">
@@ -268,20 +248,10 @@ export default function ExtractPage() {
           <span className="text-sm font-medium">{ocrLoading ? ocrStatus || "正在识别截图文字…" : "上传帖子截图（可多张）"}</span>
         </label>
 
-        <p className="text-xs text-gray-600">截图只在当前浏览器中识别，不会上传到服务器；首次加载中文识别能力可能需要一点时间。</p>
-
-        <button type="button" onClick={handleDemoOcr} disabled={ocrLoading} className="w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 text-sm font-medium text-pink-700 hover:bg-pink-50 disabled:opacity-50">
-          先用示例截图试一下 OCR
-        </button>
-
         <div className="flex items-center gap-3"><div className="flex-1 h-px bg-gray-100" /><span className="text-xs text-gray-500">或直接粘贴正文</span><div className="flex-1 h-px bg-gray-100" /></div>
 
-        <button type="button" onClick={() => { setRawText(DEMO_POST); setError(null); setExtracted(false); }} className="w-full rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-medium text-blue-800 hover:bg-blue-100">
-          没带攻略？填入示例文字体验
-        </button>
-
-        <textarea value={rawText} onChange={(event) => setRawText(event.target.value)} rows={7} placeholder="粘贴小红书帖子正文。识别结果会保留对应的原文片段，供你逐条核对。" className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm leading-relaxed resize-none" />
-        <input type="text" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="帖子链接（可选，仅作记录，不会自动抓取）" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm" />
+        <textarea value={rawText} onChange={(event) => setRawText(event.target.value)} rows={7} placeholder="粘贴小红书帖子正文" className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm leading-relaxed resize-none" />
+        <input type="text" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="帖子链接（可选）" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent text-sm" />
         <button onClick={handleExtract} disabled={rawText.trim().length < 5 || loading} className="w-full py-3 rounded-xl btn-route font-semibold shadow-lg disabled:opacity-50">
           {loading ? "正在从原文提取…" : extracted ? "重新从原文提取" : "提取原文地点"}
         </button>
@@ -292,32 +262,12 @@ export default function ExtractPage() {
       {extracted && (
         <section aria-labelledby="review-heading">
           <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 mb-4">
-            <h2 id="review-heading" className="font-semibold text-blue-950">核对后再进入规划</h2>
-            <p className="text-sm text-blue-900 mt-1">每一项都要经过：原文证据 → 你的选择/编辑 → 地图匹配。改名后需重新核对。</p>
-            <div className="mt-3">
-              <label className="block text-xs font-medium text-blue-950 mb-1" htmlFor="city">旅行城市（模型只作推测，请确认）</label>
+            <h2 id="review-heading" className="font-semibold text-blue-950">确认旅行城市</h2>
+            <div className="mt-2">
+              <label className="sr-only" htmlFor="city">旅行城市</label>
               <input id="city" value={city} onChange={(event) => { setCity(event.target.value); setSavedId(null); setCandidates((previous) => previous.map((candidate) => ({ ...candidate, mapVerification: undefined }))); }} placeholder="例如：成都" className="w-full px-3 py-2 rounded-lg border border-blue-300 bg-white text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600" />
             </div>
           </div>
-
-          <section className="mb-5 rounded-xl border border-gray-200 bg-white p-4 shadow-sm" aria-labelledby="verification-progress-heading">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 id="verification-progress-heading" className="text-sm font-semibold text-gray-900">地点核验进度</h2>
-                <p className="mt-0.5 text-xs text-gray-600">只有已选择且地图匹配成功的地点才能保存。</p>
-              </div>
-              <span className="text-sm font-semibold text-blue-800">{verificationPercent}%</span>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-100" aria-hidden="true">
-              <div className="h-full rounded-full bg-blue-700 transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${verificationPercent}%` }} />
-            </div>
-            <dl className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
-              <div className="rounded-lg bg-gray-50 p-2"><dt className="text-gray-500">提取</dt><dd className="mt-0.5 font-semibold text-gray-900">{candidates.length}</dd></div>
-              <div className="rounded-lg bg-blue-50 p-2"><dt className="text-blue-700">已选</dt><dd className="mt-0.5 font-semibold text-blue-950">{selectedCount}</dd></div>
-              <div className="rounded-lg bg-emerald-50 p-2"><dt className="text-emerald-700">已核对</dt><dd className="mt-0.5 font-semibold text-emerald-950">{verifiedCount}</dd></div>
-              <div className="rounded-lg bg-amber-50 p-2"><dt className="text-amber-700">待处理</dt><dd className="mt-0.5 font-semibold text-amber-950">{unverifiedSelected.length}</dd></div>
-            </dl>
-          </section>
 
           <div className="flex items-center justify-between mb-3 gap-3">
             <h2 className="text-sm font-medium text-gray-800">提取到 {candidates.length} 个原文地点</h2>
@@ -362,9 +312,12 @@ export default function ExtractPage() {
             })}
           </div>
 
-          <div className="flex gap-2 mb-2">
-            <input value={manualName} onChange={(event) => setManualName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") addManual(); }} placeholder="帖子漏掉的地点？输入名称后手动添加" className="flex-1 px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm" />
-            <button onClick={addManual} disabled={!manualName.trim()} className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium transition-colors disabled:opacity-50">添加</button>
+          <div className="mb-3 rounded-2xl border-2 border-blue-300 bg-blue-50 p-4 shadow-sm">
+            <label htmlFor="manual-place" className="mb-2 block text-sm font-semibold text-blue-950">还有其他想去的地点？</label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input id="manual-place" value={manualName} onChange={(event) => setManualName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") addManual(); }} placeholder="输入地点名称" className="flex-1 px-4 py-3 rounded-xl border border-blue-300 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm" />
+              <button onClick={addManual} disabled={!manualName.trim()} className="rounded-xl bg-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:opacity-50">添加地点</button>
+            </div>
           </div>
 
           <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">

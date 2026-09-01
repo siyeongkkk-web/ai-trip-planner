@@ -471,30 +471,13 @@ function PlanContent() {
     <main className="flow-page flex-1">
       <div className="flow-shell itinerary-shell">
       <PlanningSteps current="itinerary" planId={plan.id} />
-      <section className="itinerary-hero flow-card">
-        <div>
-          <button
-            onClick={() => router.push(`/?id=${plan.id}`)}
-            className="flow-back mb-2"
-          >
-            ← 返回
-          </button>
-          <span className="travel-kicker">第四站 · 路线已经排好</span>
-          <h1>
-            {plan.destination} {plan.days}日游
-          </h1>
-          {plan.departureCity && (
-            <div className="text-sm text-gray-500 mt-1 space-y-0.5">
-              <p>{plan.departureCity}出发 · {plan.travelers || 1}人</p>
-              {plan.startDate && plan.endDate && <p>{plan.startDate} 至 {plan.endDate}</p>}
-              <p>公交/地铁超过 {plan.publicTransportTaxiThreshold || 60} 分钟时比较打车方案</p>
-            </div>
-          )}
-        </div>
-        <figure className="itinerary-hero__sticker">
-          <Image unoptimized src="/illustrations/self-mocking-bear/planning.png" alt="自嘲熊正在写旅行计划" width={150} height={150} />
-          <figcaption>路线写进本子里，出发就不慌</figcaption>
-        </figure>
+      <div className="itinerary-toolbar">
+        <button
+          onClick={() => router.push(`/?id=${plan.id}`)}
+          className="flow-back"
+        >
+          ← 返回
+        </button>
         <div className="itinerary-actions">
           <button
             onClick={copyPlan}
@@ -525,6 +508,53 @@ function PlanContent() {
               </button>
             </div>
           </details>
+        </div>
+      </div>
+      <section className={`itinerary-hero flow-card ${((plan.outboundTransport && plan.returnTransport) || plan.selectedHotel) ? "itinerary-hero--with-bookings" : ""}`}>
+        <div>
+          <span className="travel-kicker">第四站 · 路线已经排好</span>
+          <h1>
+            {plan.destination} {plan.days}日游
+          </h1>
+          {plan.departureCity && (
+            <div className="text-sm text-gray-500 mt-1 space-y-0.5">
+              <p>{plan.departureCity}出发 · {plan.travelers || 1}人</p>
+              {plan.startDate && plan.endDate && <p>{plan.startDate} 至 {plan.endDate}</p>}
+              <p>公交/地铁超过 {plan.publicTransportTaxiThreshold || 60} 分钟时比较打车方案</p>
+            </div>
+          )}
+        </div>
+        {((plan.outboundTransport && plan.returnTransport) || plan.selectedHotel) && (
+          <section className="itinerary-bookings" aria-label="已确认预订">
+            {plan.outboundTransport && plan.returnTransport && (
+              <article className="itinerary-booking-row">
+                <h2>交通</h2>
+                <div>
+                  <p>去 · {plan.outboundTransport.serviceNumber} · {plan.outboundTransport.departTime}–{plan.outboundTransport.arriveTime}</p>
+                  <p>返 · {plan.returnTransport.serviceNumber} · {plan.returnTransport.departTime}–{plan.returnTransport.arriveTime}</p>
+                  {plan.transportPricing?.kind === "round-trip-total" && <p>往返 ¥{plan.transportPricing.totalPricePerPerson}/人</p>}
+                </div>
+              </article>
+            )}
+            {plan.selectedHotel && (
+              <article className="itinerary-booking-row">
+                <h2>酒店</h2>
+                <div className="min-w-0">
+                  <p>{plan.selectedHotel.name} · ¥{plan.selectedHotel.totalPrice}</p>
+                  <div className="itinerary-booking-links">
+                    <a href={hotelCtripUrl || "https://hotels.ctrip.com/"} target="_blank" rel="noopener noreferrer">携程</a>
+                    <a href={`https://www.amap.com/search?query=${encodeURIComponent(`${plan.destination} ${plan.selectedHotel.name}`)}`} target="_blank" rel="noopener noreferrer">地图</a>
+                  </div>
+                </div>
+              </article>
+            )}
+          </section>
+        )}
+        <div className="itinerary-hero__side">
+          <figure className="itinerary-hero__sticker">
+            <Image unoptimized src="/illustrations/self-mocking-bear/planning.png" alt="自嘲熊正在写旅行计划" width={118} height={118} />
+            <figcaption>路线写进本子里，出发就不慌</figcaption>
+          </figure>
         </div>
       </section>
 
@@ -591,7 +621,7 @@ function PlanContent() {
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-[color:var(--route)]">现在查看</p>
               <h2 className="mt-1 text-base font-semibold text-gray-900">{plan.dailyPlans[activeDay]?.dayLabel} 行程</h2>
-              <p className="mt-1 text-sm text-gray-600">先看当天路线；预算、风险和已确认信息收在下方概览。</p>
+              <p className="mt-1 text-sm text-gray-600">选择日期，查看当天路线和安排。</p>
             </div>
             <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">已选方案</span>
           </div>
@@ -633,8 +663,8 @@ function PlanContent() {
 
       {lastAdjustment && <AdjustmentReceipt result={lastAdjustment} />}
 
-      {plan.dailyPlans.length > 0 && <details className="group mt-5 rounded-2xl border border-[color:var(--line)] bg-[color:var(--paper-card)] shadow-sm" open>
-        <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-gray-900"><span className="flex items-center justify-between">行程概览与检查 <span aria-hidden="true" className="text-gray-400 group-open:rotate-180">⌄</span></span></summary>
+      {plan.dailyPlans.length > 0 && <details className="group mt-5 rounded-2xl border border-[color:var(--line)] bg-[color:var(--paper-card)] shadow-sm">
+        <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-gray-900"><span className="flex items-center justify-between">预算与行程提醒 <span aria-hidden="true" className="text-gray-400 group-open:rotate-180">⌄</span></span></summary>
         <div className="border-t border-[color:var(--line)] px-4 py-4">
       {plan.dailyPlans.length > 0 && <CostEstimateCard plan={plan} />}
 
@@ -659,64 +689,6 @@ function PlanContent() {
             window.setTimeout(() => assistantSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
           }}
         />
-      )}
-
-      {plan.dailyPlans.length > 0 && plan.outboundTransport && plan.returnTransport && (
-        <div className="mb-4 p-4 rounded-xl bg-sky-50 border border-sky-200">
-          <h3 className="text-sm font-semibold text-sky-950 mb-2">已确认往返交通</h3>
-          <div className="space-y-1 text-sm text-sky-900">
-            <p>
-              去程：{plan.outboundTransport.serviceNumber} · {plan.outboundTransport.departureTerminal}{" "}
-              {plan.outboundTransport.departTime} → {plan.outboundTransport.arrivalTerminal}{" "}
-              {plan.outboundTransport.arriveTime}
-              {plan.transportPricing?.kind === "per-leg"
-                ? ` · ¥${plan.transportPricing.outboundPricePerPerson}/人`
-                : plan.outboundTransport.pricePerPerson
-                  ? ` · ¥${plan.outboundTransport.pricePerPerson}/人`
-                  : ""}
-            </p>
-            <p>
-              返程：{plan.returnTransport.serviceNumber} · {plan.returnTransport.departureTerminal}{" "}
-              {plan.returnTransport.departTime} → {plan.returnTransport.arrivalTerminal}{" "}
-              {plan.returnTransport.arriveTime}
-              {plan.transportPricing?.kind === "per-leg"
-                ? ` · ¥${plan.transportPricing.returnPricePerPerson}/人`
-                : plan.returnTransport.pricePerPerson
-                  ? ` · ¥${plan.returnTransport.pricePerPerson}/人`
-                  : ""}
-            </p>
-            {plan.transportPricing?.kind === "round-trip-total" && (
-              <p>往返合计：¥{plan.transportPricing.totalPricePerPerson}/人</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {plan.dailyPlans.length > 0 && plan.selectedHotel && (
-        <div className="mb-4 p-4 rounded-xl bg-violet-50 border border-violet-200">
-          <h3 className="text-sm font-semibold text-violet-950">已确认酒店</h3>
-          <p className="mt-1 text-sm text-violet-900">
-            {plan.selectedHotel.name} · 入住总价 ¥{plan.selectedHotel.totalPrice}
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <a
-              href={hotelCtripUrl || "https://hotels.ctrip.com/"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs rounded-lg border border-violet-200 bg-white px-3 py-1.5 text-violet-700"
-            >
-              {hotelCtripUrl ? "打开这家酒店的携程详情" : "打开携程复核价格"}
-            </a>
-            <a
-              href={`https://www.amap.com/search?query=${encodeURIComponent(`${plan.destination} ${plan.selectedHotel.name}`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs rounded-lg border border-violet-200 bg-white px-3 py-1.5 text-violet-700"
-            >
-              高德查看酒店
-            </a>
-          </div>
-        </div>
       )}
 
       {(unscheduledSourcePOIs.length > 0 || (sourceCollection && selectedSavedCount > 0)) && (
@@ -769,11 +741,6 @@ function PlanContent() {
         </section>
       )}
 
-      {plan.dailyPlans.length > 0 && (
-        <p className="mt-8 text-center text-xs text-gray-400">
-          最低预估默认按公共交通计算；大交通和酒店使用你确认的价格，地图参考价与基础餐标可在费用明细中查看。
-        </p>
-      )}
       </div>
     </main>
   );

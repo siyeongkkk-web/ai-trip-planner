@@ -53,7 +53,7 @@ function FromPostContent() {
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
       <button onClick={() => router.push("/extract")} className="mb-4 text-sm text-gray-600 hover:text-gray-900">返回地点清单</button>
       <h1 className="text-2xl font-bold text-gray-900">补充旅行偏好</h1>
-      <p className="mb-5 mt-1 text-sm text-gray-600">接下来依次确认偏好、往返交通和酒店，最后才生成从帖子清单中挑选的日程。</p>
+      <p className="mb-5 mt-1 text-sm text-gray-600">确认日期和偏好，继续选择交通与酒店。</p>
       <TripForm
         key={collection.id}
         initialDestination={collection.city}

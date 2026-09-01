@@ -125,9 +125,7 @@ export default function HotelSetup({ plan }: { plan: TripPlan }) {
         <div className="hotel-hero__copy">
           <span className="travel-kicker">第三站 · 今晚睡哪里</span>
           <h1>选择酒店</h1>
-          <p>
-          候选来自高德真实地点。已核对携程详情页的可直接打开；尚未核对的会复制名称并带你到携程搜索，避免空白推荐区。
-          </p>
+          <p>根据到达位置和旅行偏好查看候选，再到携程确认房型与价格。</p>
         {!!plan.hotelPreferences?.length && (
           <div className="hotel-tags mt-3 flex flex-wrap gap-1.5">
             {plan.hotelPreferences.map((preference) => (
@@ -153,7 +151,17 @@ export default function HotelSetup({ plan }: { plan: TripPlan }) {
         </figure>
       </section>
 
-      {loading && <p className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-500">正在查找真实酒店候选，并核对可直达的携程详情页…</p>}
+      {loading && (
+        <section role="status" aria-live="polite" className="rounded-2xl border-2 border-violet-400 bg-violet-50 px-5 py-6 shadow-[5px_6px_0_0_#17252b]">
+          <div className="flex items-center gap-3">
+            <span className="h-3 w-3 shrink-0 rounded-full bg-violet-600 motion-safe:animate-pulse" aria-hidden="true" />
+            <div>
+              <h2 className="text-base font-bold text-violet-950">正在为你推荐酒店</h2>
+              <p className="mt-1 text-sm text-violet-800">正在查找真实酒店候选…</p>
+            </div>
+          </div>
+        </section>
+      )}
       {!loading &&
         groups.map((group) => {
           const items = candidates.filter((candidate) => candidate.group === group.key);
@@ -207,7 +215,6 @@ export default function HotelSetup({ plan }: { plan: TripPlan }) {
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <h2 className="font-semibold text-emerald-950">确认你在携程选中的酒店</h2>
-            <p className="mt-1 text-xs text-emerald-800">外部确认任务：打开真实平台 → 核对名称、地址、日期、房型与总价 → 回来填写。</p>
           </div>
           <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${name.trim() && totalPrice > 0 ? "border-emerald-400 bg-white text-emerald-800" : "border-amber-300 bg-amber-50 text-amber-900"}`}>
             {name.trim() && totalPrice > 0 ? "信息已齐，可生成行程" : "等待你完成平台核对"}

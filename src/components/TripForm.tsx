@@ -132,7 +132,7 @@ export default function TripForm({ onSubmit, loading, initialDestination = "", s
     <div className="w-full max-w-lg mx-auto space-y-5">
       {sourceSummary && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
-          已导入帖子中保存并核对过的 {sourceSummary.count} 个地点。后续日程会从这份清单安排；餐厅不足时才由小助手在附近补充，并明确标注。
+          已导入 {sourceSummary.count} 个地点 · {sourceSummary.city}
         </div>
       )}
       {readiness && <PlanningReadinessCard report={readiness} />}

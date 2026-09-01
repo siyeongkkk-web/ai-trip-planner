@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildExtractPrompt, EXTRACT_SYSTEM_PROMPT } from "@/lib/prompts";
 import { ExtractInput } from "@/lib/types";
-import { fetchWithTimeout } from "@/lib/fetch-timeout";
+import { ExternalRequestTimeoutError, fetchWithTimeout } from "@/lib/fetch-timeout";
 
 interface RawCandidate {
   name?: string;
@@ -14,6 +14,15 @@ const CATEGORIES = new Set(["景点", "美食", "咖啡", "拍照点", "购物",
 
 function normalizeForEvidence(value: string): string {
   return value.replace(/\s+/g, " ").trim();
+}
+
+function parseExtraction(text: string): { city?: string; candidates?: RawCandidate[] } {
+  const trimmed = text.trim();
+  const withoutFence = trimmed
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "")
+    .trim();
+  return JSON.parse(withoutFence);
 }
 
 export async function POST(req: NextRequest) {
@@ -37,52 +46,69 @@ export async function POST(req: NextRequest) {
 
     const userPrompt = buildExtractPrompt(input);
 
-    const response = await fetchWithTimeout("https://api.deepseek.com/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "deepseek-v4-flash",
-        max_tokens: 4096,
-        // 地点抽取是确定性的结构化任务。关闭默认 thinking，避免长 OCR
-        // 文本把输出预算耗在 reasoning_content，导致最终 content 为空。
-        thinking: { type: "disabled" },
-        response_format: { type: "json_object" },
-        // NER 是确定性抽取任务，温度调低减少自由发挥/编造
-        temperature: 0.2,
-        messages: [
-          { role: "system", content: EXTRACT_SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    }, 30_000, "DeepSeek 地点提取");
+    let parsed: { city?: string; candidates?: RawCandidate[] } | undefined;
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      const response = await fetchWithTimeout("https://api.deepseek.com/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "deepseek-v4-flash",
+          max_tokens: 4096,
+          // 地点抽取是确定性的结构化任务。关闭默认 thinking，避免长 OCR
+          // 文本把输出预算耗在 reasoning_content，导致最终 content 为空。
+          thinking: { type: "disabled" },
+          response_format: { type: "json_object" },
+          // NER 是确定性抽取任务，温度调低减少自由发挥/编造
+          temperature: 0.2,
+          messages: [
+            { role: "system", content: EXTRACT_SYSTEM_PROMPT },
+            { role: "user", content: userPrompt },
+          ],
+        }),
+      }, 30_000, "DeepSeek 地点提取");
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error("DeepSeek API error:", response.status, errorBody);
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error("DeepSeek API error:", response.status, errorBody);
+        return NextResponse.json(
+          { error: `AI 服务调用失败 (${response.status})，请稍后重试。` },
+          { status: 502 }
+        );
+      }
+
+      const data = await response.json();
+      const choice = data.choices?.[0];
+      const text = choice?.message?.content;
+      if (typeof text !== "string" || !text.trim()) {
+        console.error("DeepSeek returned empty extraction content", {
+          attempt,
+          finishReason: choice?.finish_reason,
+          hasReasoningContent: Boolean(choice?.message?.reasoning_content),
+        });
+        continue;
+      }
+
+      try {
+        parsed = parseExtraction(text);
+        break;
+      } catch (error) {
+        console.error("DeepSeek returned invalid extraction JSON", {
+          attempt,
+          finishReason: choice?.finish_reason,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    if (!parsed) {
       return NextResponse.json(
-        { error: `AI 服务调用失败 (${response.status})，请稍后重试。` },
+        { error: "AI 连续两次返回了不完整结果，请再试一次。你的帖子内容没有问题。" },
         { status: 502 }
       );
     }
-
-    const data = await response.json();
-    const choice = data.choices?.[0];
-    const text = choice?.message?.content;
-    if (typeof text !== "string" || !text.trim()) {
-      console.error("DeepSeek returned empty extraction content", {
-        finishReason: choice?.finish_reason,
-        hasReasoningContent: Boolean(choice?.message?.reasoning_content),
-      });
-      return NextResponse.json(
-        { error: "AI 没有生成提取结果，请重试，或删减明显的乱码后再试。" },
-        { status: 502 }
-      );
-    }
-
-    const parsed: { city?: string; candidates?: RawCandidate[] } = JSON.parse(text);
 
     const source = normalizeForEvidence(input.text);
     const seen = new Set<string>();
@@ -126,9 +152,15 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("Extract POIs error:", err);
+    if (err instanceof ExternalRequestTimeoutError) {
+      return NextResponse.json(
+        { error: "AI 地点识别等待超过 30 秒，请重试。你的帖子内容没有问题。" },
+        { status: 504 }
+      );
+    }
     return NextResponse.json(
-      { error: "识别景点时出错，请重试。" },
-      { status: 500 }
+      { error: "暂时无法连接 AI 地点识别服务，请稍后重试。" },
+      { status: 502 }
     );
   }
 }

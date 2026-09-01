@@ -102,9 +102,6 @@ function HomeContent() {
                 <h1 id="home-title">先把旅行信息告诉我</h1>
                 <p>先确定出发地、目的地和日期。下一步再选交通、酒店和每天的路线。</p>
               </div>
-              <div className="travel-notes" aria-label="规划特点">
-                <span>地图实体可核对</span><span>每一步可返回</span><span>草稿自动保留</span>
-              </div>
               <figure className="intro-bear-sticker">
                 <Image
                   src="/illustrations/self-mocking-bear-shaved-ice.png"
